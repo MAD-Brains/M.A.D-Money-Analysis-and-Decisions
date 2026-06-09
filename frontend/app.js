@@ -2828,11 +2828,14 @@ if (profileBtn) {
         updateAvatarDisplay(data.user.avatarUrl, data.user.displayName || data.user.username);
         
         // Render QR Code
-        if (window.QRCode) {
-          QRCode.toCanvas(profileQrCanvas, data.user.username, {
-            width: 150,
-            margin: 1,
-            color: { dark: '#111827', light: '#ffffff' }
+        if (window.QRCode && profileQrCanvas) {
+          profileQrCanvas.innerHTML = '';
+          new QRCode(profileQrCanvas, {
+            text: data.user.username,
+            width: 180,
+            height: 180,
+            colorDark: '#111827',
+            colorLight: '#ffffff'
           });
         }
       }
@@ -3142,9 +3145,36 @@ if (profileBack) {
 }
 
 if (settingsProfileCard) {
-  settingsProfileCard.addEventListener('click', () => {
+  settingsProfileCard.addEventListener('click', async () => {
     profileOverlay.style.display = 'none';
     editProfileOverlay.style.display = 'block';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`);
+      const data = await res.json();
+      if (data.success) {
+        const label = data.user.displayName || data.user.username;
+        const displayNameEl = document.getElementById('profile-display-name');
+        if (displayNameEl) displayNameEl.textContent = label;
+        if (profileUsername) profileUsername.textContent = `@${data.user.username}`;
+        if (editProfileName) editProfileName.value = data.user.displayName || '';
+        if (editProfileEmail) editProfileEmail.value = data.user.email || '';
+        updateAvatarDisplay(data.user.avatarUrl, label);
+
+        if (window.QRCode && profileQrCanvas) {
+          profileQrCanvas.innerHTML = '';
+          new QRCode(profileQrCanvas, {
+            text: data.user.username,
+            width: 180,
+            height: 180,
+            colorDark: '#111827',
+            colorLight: '#ffffff'
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load profile details', err);
+    }
   });
 }
 
