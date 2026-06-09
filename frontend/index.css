@@ -813,8 +813,13 @@ body {
   -webkit-backdrop-filter: blur(20px);
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-overlay);
+}
+.overlay::-webkit-scrollbar {
+  display: none;
 }
 
 .overlay__header {
@@ -875,14 +880,14 @@ body {
 .overlay__list {
   max-width: 600px;
   margin: 0 auto;
-  padding: 8px 20px 40px;
+  padding: 8px 20px 90px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .overlay__content {
-  padding: 16px 20px 40px;
+  padding: 16px 20px 90px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1247,7 +1252,7 @@ body {
 .insights-container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 8px 20px 40px;
+  padding: 8px 20px 90px;
   display: flex;
   flex-direction: column;
   gap: 20px;

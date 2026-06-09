@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="index.css" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -658,8 +658,8 @@
       <h2 class="overlay__title">Settings</h2>
     </div>
     
-    <div class="overlay__content" style="padding: 16px; height: calc(100% - 64px); overflow-y: auto; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
-      
+    <div class="overlay__content" style="padding: 16px 16px 90px; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
+
       <!-- Main Profile Card -->
       <div class="settings-card" id="settings-profile-card" style="cursor: pointer; display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 16px;">
         <div style="width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: 700; flex-shrink: 0; position: relative;">
@@ -711,7 +711,7 @@
       </div>
 
       <!-- Quick Access -->
-      <div class="settings-section" style="margin-bottom: 30px;">
+      <div class="settings-section">
         <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Quick Access</div>
         <div class="settings-card" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;">
           
@@ -773,8 +773,8 @@
       <h2 class="overlay__title">Profile Details</h2>
     </div>
     
-    <div class="overlay__content" style="padding: 16px; height: calc(100% - 64px); overflow-y: auto; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
-      
+    <div class="overlay__content" style="padding: 16px 16px 90px; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
+
       <!-- Profile Picture Section -->
       <div class="profile-picture-card" style="display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 24px;">
         <div style="position: relative; width: 100px; height: 100px; margin-bottom: 16px;">
@@ -785,13 +785,13 @@
           </button>
           <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
         </div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);" id="profile-display-name">Loading...</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);" id="profile-display-name"></div>
         <div style="font-size: 0.9rem; color: var(--text-secondary);" id="profile-username-display">@username</div>
       </div>
 
       <!-- QR Code Section -->
       <div class="profile-qr-card" style="display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 24px;">
-        <canvas id="profile-qr-canvas" style="border-radius: 8px; margin-bottom: 12px; background: white; padding: 4px;"></canvas>
+        <div id="profile-qr-canvas" style="border-radius: 8px; margin-bottom: 12px; background: white; padding: 8px; display: inline-block;"></div>
         <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;">Scan to add me as a friend on M.A.D</div>
       </div>
 
@@ -812,7 +812,7 @@
       </div>
 
       <!-- Change Password Section -->
-      <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 30px;">
+      <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
         <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Change Password</h3>
         <form class="modal__form" id="change-password-form" style="gap: 10px;">
           <div class="modal__field">
@@ -837,7 +837,7 @@
       </button>
       <h2 class="overlay__title">Add Friend</h2>
     </div>
-    <div class="overlay__content" style="padding: 16px;">
+    <div class="overlay__content" style="padding: 16px 16px 90px;">
       <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Connect with friends to easily split bills and manage shared expenses.</p>
         <form class="modal__form" id="add-friend-form" style="gap: 10px;">
