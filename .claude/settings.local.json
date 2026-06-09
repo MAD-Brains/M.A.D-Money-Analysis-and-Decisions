@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(curl -s http://localhost:3000/api/transactions -m 3)",
+      "Bash(curl -s http://localhost:3000/api/ledger)",
+      "Bash(curl -s http://localhost:3000/api/insights/health-score)",
+      "Bash(curl -s http://localhost:3000/api/insights/overview)",
+      "Bash(curl -s -X POST http://localhost:3000/api/transactions -H \"Content-Type: application/json\" -d \"{\\\\\"input\\\\\":\\\\\"1200 dinner\\\\\",\\\\\"splits\\\\\":[{\\\\\"friendName\\\\\":\\\\\"Rohan\\\\\",\\\\\"amount\\\\\":400},{\\\\\"friendName\\\\\":\\\\\"Priya\\\\\",\\\\\"amount\\\\\":400}]}\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
