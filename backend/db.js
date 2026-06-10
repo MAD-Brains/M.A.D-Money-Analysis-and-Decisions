@@ -18,6 +18,7 @@ db.exec(`
     passwordHash TEXT NOT NULL,
     displayName TEXT,
     avatarUrl TEXT,
+    googleId TEXT,
     createdAt TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
   )
 `);
@@ -34,6 +35,16 @@ try {
 } catch (e) {
   // Column already exists, ignore
 }
+
+// Migration for googleId (Sign in with Google)
+try {
+  db.exec('ALTER TABLE users ADD COLUMN googleId TEXT');
+} catch (e) {
+  // Column already exists, ignore
+}
+// Partial unique index — SQLite ALTER TABLE can't add UNIQUE directly;
+// allows many NULLs (non-Google accounts) but enforces uniqueness when set.
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_googleId ON users(googleId) WHERE googleId IS NOT NULL');
 
 // Create transactions table
 db.exec(`
@@ -377,11 +388,22 @@ const insertUser = db.prepare(`
 `);
 
 const getUserByEmail = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE lower(email) = lower(@email)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE lower(email) = lower(@email)
 `);
 
 const getUserByUsername = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE lower(username) = lower(@username)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE lower(username) = lower(@username)
+`);
+
+const getUserByGoogleId = db.prepare(`
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE googleId = @googleId
+`);
+
+const linkGoogleId = db.prepare('UPDATE users SET googleId = @googleId WHERE id = @id');
+
+const insertGoogleUser = db.prepare(`
+  INSERT INTO users (username, email, passwordHash, displayName, avatarUrl, googleId)
+  VALUES (@username, @email, @passwordHash, @displayName, @avatarUrl, @googleId)
 `);
 
 const getUserById = db.prepare(`
@@ -476,6 +498,9 @@ module.exports = {
   insertUser,
   getUserByEmail,
   getUserByUsername,
+  getUserByGoogleId,
+  linkGoogleId,
+  insertGoogleUser,
   getUserById,
   searchUsersByEmailOrUsername,
   updateUserProfile,
