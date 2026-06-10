@@ -1437,6 +1437,8 @@ const signupDisplayName = document.getElementById('signup-displayname');
 const signupPassword    = document.getElementById('signup-password');
 const signupError       = document.getElementById('signup-error');
 const signupSubmit      = document.getElementById('signup-submit');
+const authDivider       = document.getElementById('auth-divider');
+const authGoogleBtn     = document.getElementById('auth-google-btn');
 
 const profileIcon       = document.getElementById('profile-icon');
 const profileMenu       = document.getElementById('profile-menu');
@@ -1514,6 +1516,63 @@ function setAuthError(el, message) {
   if (!el) return;
   el.textContent = message || '';
   el.style.display = message ? 'block' : 'none';
+}
+
+let googleInitialized = false;
+
+async function initGoogleSignIn() {
+  if (!authGoogleBtn || !authDivider) return;
+  try {
+    const res = await fetch(`${API_BASE}/auth/config`);
+    const data = await res.json();
+    if (!data.googleClientId) return;
+
+    // The GIS script tag uses async/defer, so it may not be loaded yet
+    // when DOMContentLoaded fires — wait for it (up to ~5s).
+    for (let i = 0; i < 50 && (typeof google === 'undefined' || !google.accounts?.id); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof google === 'undefined' || !google.accounts?.id) return;
+
+    if (!googleInitialized) {
+      google.accounts.id.initialize({ client_id: data.googleClientId, callback: handleGoogleCredential });
+      googleInitialized = true;
+    }
+
+    authDivider.style.display = 'flex';
+    authGoogleBtn.style.display = 'flex';
+    authGoogleBtn.innerHTML = '';
+    google.accounts.id.renderButton(authGoogleBtn, {
+      type: 'standard',
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'filled_black' : 'outline',
+      size: 'large',
+      width: 320,
+      text: 'continue_with',
+    });
+  } catch (err) {
+    console.error('initGoogleSignIn error:', err);
+  }
+}
+
+async function handleGoogleCredential(response) {
+  const activeError = signupForm && signupForm.style.display !== 'none' ? signupError : loginError;
+  setAuthError(activeError, '');
+  try {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      setAuthError(activeError, data.error || 'Google sign-in failed, try again');
+      return;
+    }
+    window.location.reload();
+  } catch (err) {
+    console.error('Google sign-in error:', err);
+    setAuthError(activeError, 'Server error, try again');
+  }
 }
 
 function populateProfileMenu(user) {
@@ -2012,6 +2071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) {
     showAuthOverlay();
     loginIdentifier?.focus();
+    initGoogleSignIn();
     return;
   }
   hideAuthOverlay();

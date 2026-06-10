@@ -2893,6 +2893,31 @@ body:not(.authenticated) .fab {
   margin: -4px 0 0;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+.auth-google-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.auth-google-btn > div {
+  width: 100% !important;
+}
+
 /* ═══════════════════════════════════════════════
    👤 PROFILE MENU — account dropdown
    ═══════════════════════════════════════════════ */

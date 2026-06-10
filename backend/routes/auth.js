@@ -1,25 +1,58 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { OAuth2Client } = require('google-auth-library');
 const router = express.Router();
-const { insertUser, getUserByEmail, getUserByUsername, getUserById } = require('../db');
+const {
+  insertUser, getUserByEmail, getUserByUsername, getUserById,
+  getUserByGoogleId, linkGoogleId, insertGoogleUser,
+} = require('../db');
 
 const SALT_ROUNDS = 10;
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const USERNAME_RE = /^(?=.{3,20}$)[a-zA-Z0-9_]+(?: [a-zA-Z0-9_]+)*$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function publicUser(user) {
-  return { 
-    id: user.id, 
-    username: user.username, 
-    email: user.email, 
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
     displayName: user.displayName || user.username,
     avatarUrl: user.avatarUrl || null,
     monthlyIncome: user.monthlyIncome || 0
   };
 }
+
+function generateUniqueUsername(seed) {
+  let base = String(seed || 'user')
+    .split('@')[0]
+    .replace(/[^a-zA-Z0-9_ ]/g, '')
+    .trim()
+    .slice(0, 20);
+  if (base.length < 3) base = (base + 'user').slice(0, 20);
+  if (!USERNAME_RE.test(base)) base = 'user';
+
+  let candidate = base;
+  let suffix = 1;
+  while (getUserByUsername.get({ username: candidate })) {
+    const s = String(suffix);
+    candidate = base.slice(0, 20 - s.length) + s;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+/**
+ * GET /api/auth/config
+ * Public config for the frontend (e.g. whether Google sign-in is enabled).
+ */
+router.get('/config', (req, res) => {
+  res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID || null });
+});
 
 /**
  * POST /api/auth/signup
@@ -91,6 +124,76 @@ router.post('/login', (req, res) => {
     return res.json({ success: true, user: publicUser(user) });
   } catch (err) {
     console.error('POST /auth/login error:', err);
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/auth/google
+ * Verify a Google ID token (credential) and create/link/log in the user.
+ */
+router.post('/google', async (req, res) => {
+  try {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(503).json({ success: false, error: 'Google sign-in is not configured' });
+    }
+    const { credential } = req.body || {};
+    if (typeof credential !== 'string' || !credential) {
+      return res.status(400).json({ success: false, error: 'Missing Google credential' });
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      console.error('POST /auth/google verify error:', err);
+      return res.status(401).json({ success: false, error: 'Invalid Google credential' });
+    }
+    if (!payload || !payload.sub || !payload.email) {
+      return res.status(401).json({ success: false, error: 'Invalid Google credential' });
+    }
+
+    const googleId = payload.sub;
+    const email = payload.email.trim();
+    const emailVerified = payload.email_verified === true;
+    const name = typeof payload.name === 'string' ? payload.name.trim() : '';
+    const picture = typeof payload.picture === 'string' ? payload.picture : null;
+
+    let user = getUserByGoogleId.get({ googleId });
+
+    if (!user && emailVerified) {
+      const existingByEmail = getUserByEmail.get({ email });
+      if (existingByEmail) {
+        if (!existingByEmail.googleId) linkGoogleId.run({ googleId, id: existingByEmail.id });
+        user = getUserById.get({ id: existingByEmail.id });
+      }
+    }
+
+    if (!user) {
+      if (!emailVerified) {
+        return res.status(401).json({ success: false, error: 'Google account email is not verified' });
+      }
+      const username = generateUniqueUsername(email);
+      const randomPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
+      const result = insertGoogleUser.run({
+        username,
+        email,
+        passwordHash: randomPasswordHash,
+        displayName: name || username,
+        avatarUrl: picture,
+        googleId,
+      });
+      user = getUserById.get({ id: result.lastInsertRowid });
+    }
+
+    req.session.userId = user.id;
+    return res.json({ success: true, user: publicUser(user) });
+  } catch (err) {
+    console.error('POST /auth/google error:', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }
 });
