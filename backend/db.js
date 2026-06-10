@@ -130,6 +130,47 @@ db.exec(`
   )
 `);
 
+// Create expenses table (Phase C: Shared Expense Schema)
+// One row per shared expense, owned by the account that paid (payerId).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transactionId INTEGER NOT NULL,
+    payerId INTEGER,
+    totalAmount REAL NOT NULL,
+    description TEXT,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY(transactionId) REFERENCES transactions(id),
+    FOREIGN KEY(payerId) REFERENCES users(id)
+  )
+`);
+
+// Create expense_participants table (Phase C: Shared Expense Schema)
+// One row per non-payer share. userId is set for linked accounts;
+// legacyFriendName + isLocalOnly mark migrated free-text "friend" shares.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS expense_participants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    expenseId INTEGER NOT NULL,
+    userId INTEGER,
+    legacyFriendName TEXT,
+    shareAmount REAL NOT NULL,
+    isSettled INTEGER NOT NULL DEFAULT 0,
+    settledDate TEXT,
+    settledByUserId INTEGER,
+    isLocalOnly INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY(expenseId) REFERENCES expenses(id),
+    FOREIGN KEY(userId) REFERENCES users(id),
+    FOREIGN KEY(settledByUserId) REFERENCES users(id)
+  )
+`);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_payerId ON expenses(payerId)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_transactionId ON expenses(transactionId)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expense_participants_expenseId ON expense_participants(expenseId)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expense_participants_userId ON expense_participants(userId)`);
+
 // Prepared statements for performance
 const insertTransaction = db.prepare(`
   INSERT INTO transactions (userId, amount, type, category, note, date)
