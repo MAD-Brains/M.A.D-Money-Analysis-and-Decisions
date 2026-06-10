@@ -2795,10 +2795,16 @@ const profileBtn         = document.getElementById('profile-menu-view');
 const profileOverlay     = document.getElementById('profile-overlay');
 const profileBack        = document.getElementById('profile-back');
 const profileQrCanvas    = document.getElementById('profile-qr-canvas');
+
+const editIncomeOverlay  = document.getElementById('edit-income-overlay');
+const editIncomeForm     = document.getElementById('edit-income-form');
+const editIncomeInput    = document.getElementById('edit-income-input');
+const editIncomeBack     = document.getElementById('edit-income-back');
 const profileUsername    = document.getElementById('profile-username-display');
 const editProfileForm    = document.getElementById('edit-profile-form');
 const editProfileName    = document.getElementById('edit-profile-displayname');
 const editProfileEmail   = document.getElementById('edit-profile-email');
+const editProfileIncome  = document.getElementById('edit-profile-income');
 const changePasswordForm = document.getElementById('change-password-form');
 const changePwdCurrent   = document.getElementById('change-pwd-current');
 const changePwdNew       = document.getElementById('change-pwd-new');
@@ -2823,6 +2829,7 @@ if (profileBtn) {
       if (data.success) {
         editProfileName.value = data.user.displayName || '';
         editProfileEmail.value = data.user.email || '';
+        if (editProfileIncome) editProfileIncome.value = data.user.monthlyIncome || 0;
         profileUsername.textContent = `@${data.user.username}`;
         
         updateAvatarDisplay(data.user.avatarUrl, data.user.displayName || data.user.username);
@@ -2861,7 +2868,6 @@ if (editProfileForm) {
     e.preventDefault();
     const displayName = editProfileName.value;
     const email = editProfileEmail.value;
-
     try {
       const res = await fetch(`${API_BASE}/auth/me`, {
         method: 'PUT',
@@ -3116,6 +3122,7 @@ const settingsAvatarImg   = document.getElementById('settings-avatar-img');
 const settingsAvatarText  = document.getElementById('settings-avatar-text');
 const settingsProfileName = document.getElementById('settings-profile-name');
 const settingsProfileEmail= document.getElementById('settings-profile-email');
+const settingsMonthlyIncome= document.getElementById('settings-monthly-income');
 
 const settingsDarkmodeToggle = document.getElementById('settings-darkmode-toggle');
 const settingsDarkmodeSwitch = document.getElementById('settings-darkmode-switch');
@@ -3125,13 +3132,26 @@ const settingsBillsBtn    = document.getElementById('settings-bills-btn');
 const settingsSplitBtn    = document.getElementById('settings-split-btn');
 const settingsReportsBtn  = document.getElementById('settings-reports-btn');
 const settingsFutureBtn   = document.getElementById('settings-future-btn');
+const settingsIncomeBtn   = document.getElementById('settings-income-btn');
 
 if (profileMenuView) {
-  profileMenuView.addEventListener('click', () => {
+  profileMenuView.addEventListener('click', async () => {
     closeAllOverlays();
     profileMenu.style.display = 'none';
     profileOverlay.style.display = 'block';
     document.body.style.overflow = 'hidden';
+
+    try {
+      if (settingsMonthlyIncome) {
+        const res = await fetch(`${API_BASE}/auth/me`);
+        const data = await res.json();
+        if (data.success && data.user) {
+          settingsMonthlyIncome.textContent = `₹${(data.user.monthlyIncome || 0).toLocaleString('en-IN')}`;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user income for settings', err);
+    }
   });
 }
 
@@ -3177,6 +3197,66 @@ if (settingsProfileCard) {
     }
   });
 }
+
+if (settingsIncomeBtn) {
+  settingsIncomeBtn.addEventListener('click', async () => {
+    editIncomeOverlay.classList.add('active');
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`);
+      const data = await res.json();
+      if (data.success && editIncomeInput) {
+        editIncomeInput.value = data.user.monthlyIncome || 0;
+      }
+    } catch (err) {
+      console.error('Failed to load income details', err);
+    }
+  });
+}
+
+if (editIncomeOverlay) {
+  editIncomeOverlay.addEventListener('click', (e) => {
+    if (e.target === editIncomeOverlay) {
+      editIncomeOverlay.classList.remove('active');
+    }
+  });
+}
+
+if (editIncomeBack) {
+  editIncomeBack.addEventListener('click', () => {
+    editIncomeOverlay.classList.remove('active');
+  });
+}
+
+if (editIncomeForm) {
+  editIncomeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const monthlyIncome = parseFloat(editIncomeInput.value) || 0;
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monthlyIncome })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Income updated successfully! ✓');
+        const incomeDisplay = document.getElementById('settings-monthly-income');
+        if (incomeDisplay) {
+          incomeDisplay.textContent = `₹${monthlyIncome.toLocaleString('en-IN')}`;
+        }
+        editIncomeOverlay.classList.remove('active');
+      } else {
+        showToast(data.error || 'Update failed', true);
+      }
+    } catch (err) {
+      console.error('Income update error', err);
+      showToast('Connection error', true);
+    }
+  });
+}
+
 
 if (editProfileBack) {
   editProfileBack.addEventListener('click', () => {

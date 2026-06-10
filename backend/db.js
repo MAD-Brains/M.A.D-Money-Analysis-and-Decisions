@@ -22,9 +22,15 @@ db.exec(`
   )
 `);
 
-// Migration for existing databases
 try {
   db.exec('ALTER TABLE users ADD COLUMN avatarUrl TEXT');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Migration for monthlyIncome
+try {
+  db.exec('ALTER TABLE users ADD COLUMN monthlyIncome REAL DEFAULT 0');
 } catch (e) {
   // Column already exists, ignore
 }
@@ -371,25 +377,25 @@ const insertUser = db.prepare(`
 `);
 
 const getUserByEmail = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, createdAt FROM users WHERE lower(email) = lower(@email)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE lower(email) = lower(@email)
 `);
 
 const getUserByUsername = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, createdAt FROM users WHERE lower(username) = lower(@username)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE lower(username) = lower(@username)
 `);
 
 const getUserById = db.prepare(`
-  SELECT id, username, email, displayName, createdAt FROM users WHERE id = @id
+  SELECT id, username, email, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE id = @id
 `);
 
 const searchUsersByEmailOrUsername = db.prepare(`
-  SELECT id, username, email, displayName FROM users
+  SELECT id, username, email, displayName, avatarUrl, monthlyIncome FROM users
   WHERE (lower(username) LIKE lower(@query) OR lower(email) LIKE lower(@query)) AND id != @excludeUserId
   ORDER BY username ASC
   LIMIT 20
 `);
 
-const updateUserProfile = db.prepare('UPDATE users SET displayName = @displayName, email = @email WHERE id = @id');
+const updateUserProfile = db.prepare('UPDATE users SET displayName = @displayName, email = @email, monthlyIncome = @monthlyIncome WHERE id = @id');
 const updateUserPassword = db.prepare('UPDATE users SET passwordHash = @passwordHash WHERE id = @id');
 const updateUserAvatar = db.prepare('UPDATE users SET avatarUrl = @avatarUrl WHERE id = @id');
 
