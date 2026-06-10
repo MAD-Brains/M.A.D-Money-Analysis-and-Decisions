@@ -16,7 +16,8 @@ function publicUser(user) {
     username: user.username, 
     email: user.email, 
     displayName: user.displayName || user.username,
-    avatarUrl: user.avatarUrl || null
+    avatarUrl: user.avatarUrl || null,
+    monthlyIncome: user.monthlyIncome || 0
   };
 }
 
@@ -134,25 +135,35 @@ router.put('/me', (req, res) => {
   }
   
   try {
-    const { email, displayName } = req.body || {};
+    const { email, displayName, monthlyIncome } = req.body || {};
     
-    if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
+    const existingUser = getUserById.get({ id: req.session.userId });
+    if (!existingUser) return res.status(401).json({ success: false });
+
+    // Fallbacks to existing data if not provided in the payload
+    const finalEmail = email !== undefined ? email.trim() : existingUser.email;
+    const finalDisplayName = displayName !== undefined 
+      ? (typeof displayName === 'string' && displayName.trim() ? displayName.trim() : null)
+      : existingUser.displayName;
+    const finalIncome = monthlyIncome !== undefined 
+      ? (typeof monthlyIncome === 'number' ? monthlyIncome : parseFloat(monthlyIncome) || 0)
+      : existingUser.monthlyIncome;
+
+    if (typeof finalEmail !== 'string' || !EMAIL_RE.test(finalEmail)) {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
     }
 
-    const trimmedEmail = email.trim();
-    const newDisplayName = typeof displayName === 'string' && displayName.trim() ? displayName.trim() : null;
-
-    // Check if email belongs to another user
-    const existingUser = getUserByEmail.get({ email: trimmedEmail });
-    if (existingUser && existingUser.id !== req.session.userId) {
+    // Check if new email belongs to another user
+    const userWithEmail = getUserByEmail.get({ email: finalEmail });
+    if (userWithEmail && userWithEmail.id !== req.session.userId) {
       return res.status(409).json({ success: false, error: 'An account with that email already exists' });
     }
 
     const { updateUserProfile } = require('../db');
     updateUserProfile.run({
-      displayName: newDisplayName,
-      email: trimmedEmail,
+      displayName: finalDisplayName,
+      email: finalEmail,
+      monthlyIncome: finalIncome,
       id: req.session.userId
     });
 

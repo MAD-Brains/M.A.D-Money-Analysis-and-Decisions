@@ -2698,7 +2698,8 @@ body,
   font-size: 0.66rem;
   color: var(--text-tertiary);
   margin: 2px 0 8px;
-  opacity: 0.7;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
   letter-spacing: 0.2px;
 }
 
@@ -2832,6 +2833,8 @@ body:not(.authenticated) .fab {
   padding: 32px 28px;
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+
 
 .auth-card__brand {
   font-family: var(--font-display);
@@ -3055,4 +3058,70 @@ body:not(.authenticated) .fab {
 }
 .toggle-switch.active > div {
   transform: translateX(-20px);
+}
+
+/* ═══════════ SMALL POPUPS ═══════════ */
+.popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(17, 24, 39, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.popup-backdrop.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.popup-window {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 24px;
+  width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.popup-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.popup-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
