@@ -141,7 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-backend/mad.db-shm
-backend/mad.db-shm
-backend/uploads/user_8_1780996964033.jpg
-backend/mad.db-wal
+
+
+# DB Files
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (ALL files inside folder)
+backend/uploads/
