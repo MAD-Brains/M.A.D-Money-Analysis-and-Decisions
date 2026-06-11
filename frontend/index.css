@@ -3150,3 +3150,47 @@ body:not(.authenticated) .fab {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
+
+/* ═══════════════════════════════════════════════
+   LANGUAGE SELECTOR
+   ═══════════════════════════════════════════════ */
+.lang-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.lang-selector__btn {
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  padding: 5px 10px;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lang-selector__btn.active {
+  background: var(--bg-card);
+  color: var(--accent-1);
+  box-shadow: var(--shadow-overlay);
+}
+
+.lang-selector--auth {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+
+/* Devanagari script support for Hindi UI */
+html[lang="hi"] {
+  --font-body: 'Noto Sans Devanagari', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Noto Sans Devanagari', 'Space Grotesk', 'Inter', sans-serif;
+}
