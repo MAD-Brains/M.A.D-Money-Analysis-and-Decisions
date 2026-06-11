@@ -716,6 +716,19 @@
               <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; right: 2px; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
             </div>
           </div>
+          <div class="settings-item" id="settings-sfx-toggle" style="display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border-subtle); cursor: pointer;">
+            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.soundHaptics">Sound &amp; Haptics</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);" id="settings-sfx-status">On</div>
+            </div>
+            <!-- Custom Toggle Switch -->
+            <div class="toggle-switch active" id="settings-sfx-switch" style="width: 44px; height: 24px; border-radius: 12px; position: relative; transition: background 0.3s;">
+              <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; right: 2px; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+            </div>
+          </div>
           <div class="settings-item" id="settings-language-item" style="display: flex; align-items: center; gap: 16px; padding: 16px;">
             <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
@@ -964,6 +977,7 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="i18n.js"></script>
+  <script src="sfx.js"></script>
   <script src="app.js?v=2"></script>
 </body>
 </html>

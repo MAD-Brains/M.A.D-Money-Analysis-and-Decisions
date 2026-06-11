@@ -377,6 +377,8 @@ async function submitTransaction() {
   const parsed = parseInputLocally(input);
   if (!parsed || parsed.amount == null) {
     showToast(t('toast.amountMissing'), true);
+    playSound('error');
+    vibrate(40);
     return;
   }
 
@@ -397,11 +399,15 @@ async function submitTransaction() {
 
     if (!res.ok || !data.success) {
       showToast(data.error || t('toast.somethingWrong'), true);
+      playSound('error');
+      vibrate(40);
       return;
     }
 
     const { amount, category } = data.transaction;
     showToast(t('toast.transactionAdded', { amount: amount.toLocaleString('en-IN'), category }));
+    playSound('success');
+    vibrate(20);
     fetchTransactions();
     fetchHealthScore();
     fetchGoals();
@@ -409,6 +415,8 @@ async function submitTransaction() {
   } catch (err) {
     console.error('Submit error:', err);
     showToast(t('toast.networkError'), true);
+    playSound('error');
+    vibrate(40);
   }
 }
 
@@ -629,11 +637,15 @@ async function softDeleteTransaction(id) {
 
     if (!res.ok || !data.success) {
       showToast(data.error || t('toast.somethingWrong'), true);
+      playSound('error');
+      vibrate(40);
       if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
       return;
     }
 
     showToast(t('toast.transactionDeleted'));
+    playSound('tap');
+    vibrate(10);
     setTimeout(() => {
       fetchTransactions();
       fetchHealthScore();
@@ -1090,15 +1102,21 @@ async function settleDebt(friendId, name, amount) {
     const data = await res.json();
     if (data.success) {
       showToast(t('toast.settledUp', { name }));
+      playSound('success');
+      vibrate([20, 30, 20]);
       fetchLedger();
       fetchTransactions();
       fetchHealthScore();
     } else {
       showToast(t('toast.settleFailed'), true);
+      playSound('error');
+      vibrate(40);
     }
   } catch (err) {
     console.error('Settle error:', err);
     showToast(t('toast.settleFailed'), true);
+    playSound('error');
+    vibrate(40);
   }
 }
 
@@ -1457,6 +1475,9 @@ function refreshLangDependentUI() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     settingsDarkmodeStatus.textContent = isDark ? t('common.on') : t('common.off');
   }
+  if (settingsSfxStatus) {
+    settingsSfxStatus.textContent = isSfxEnabled() ? t('common.on') : t('common.off');
+  }
 }
 
 // Re-render data-driven sections that bake t() strings into their markup
@@ -1537,6 +1558,7 @@ function toggleTheme() {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   applyTheme(next);
   localStorage.setItem('mad-theme', next);
+  playSound('tap');
 }
 
 function showAuthOverlay() {
@@ -1558,6 +1580,10 @@ function setAuthError(el, message) {
   if (!el) return;
   el.textContent = message || '';
   el.style.display = message ? 'block' : 'none';
+  if (message) {
+    playSound('error');
+    vibrate(40);
+  }
 }
 
 let googleInitialized = false;
@@ -3242,6 +3268,10 @@ const settingsDarkmodeToggle = document.getElementById('settings-darkmode-toggle
 const settingsDarkmodeSwitch = document.getElementById('settings-darkmode-switch');
 const settingsDarkmodeStatus = document.getElementById('settings-darkmode-status');
 
+const settingsSfxToggle = document.getElementById('settings-sfx-toggle');
+const settingsSfxSwitch = document.getElementById('settings-sfx-switch');
+const settingsSfxStatus = document.getElementById('settings-sfx-status');
+
 const settingsBillsBtn    = document.getElementById('settings-bills-btn');
 const settingsSplitBtn    = document.getElementById('settings-split-btn');
 const settingsReportsBtn  = document.getElementById('settings-reports-btn');
@@ -3433,6 +3463,30 @@ if (settingsDarkmodeToggle) {
     } else {
       settingsDarkmodeSwitch.classList.remove('active');
       settingsDarkmodeStatus.textContent = t('common.off');
+    }
+    playSound('tap');
+  });
+}
+
+if (settingsSfxToggle) {
+  // Check initial state
+  if (!isSfxEnabled()) {
+    settingsSfxSwitch.classList.remove('active');
+    settingsSfxStatus.textContent = t('common.off');
+  }
+
+  settingsSfxToggle.addEventListener('click', () => {
+    const enabling = !isSfxEnabled();
+    setSfxEnabled(enabling);
+
+    if (enabling) {
+      settingsSfxSwitch.classList.add('active');
+      settingsSfxStatus.textContent = t('common.on');
+      playSound('tap');
+      vibrate(15);
+    } else {
+      settingsSfxSwitch.classList.remove('active');
+      settingsSfxStatus.textContent = t('common.off');
     }
   });
 }
