@@ -7,7 +7,7 @@
   <title>MAD — Money Analysis & Decisions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="index.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -16,7 +16,12 @@
 
   <!-- ═══════════ AUTH OVERLAY (login / signup gate) ═══════════ -->
   <div class="auth-overlay" id="auth-overlay" style="display: none;">
-    <button class="theme-toggle auth-overlay__theme-toggle" id="auth-theme-toggle" type="button" title="Toggle dark/light mode">
+    <div class="lang-selector lang-selector--auth" id="auth-lang-selector">
+      <button type="button" class="lang-selector__btn" data-lang="en">EN</button>
+      <button type="button" class="lang-selector__btn" data-lang="hi">हिं</button>
+      <button type="button" class="lang-selector__btn" data-lang="hinglish">Hing</button>
+    </div>
+    <button class="theme-toggle auth-overlay__theme-toggle" id="auth-theme-toggle" type="button" data-i18n-title="common.toggleTheme" title="Toggle dark/light mode">
       <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
@@ -26,49 +31,49 @@
     </button>
     <div class="auth-card">
       <div class="auth-card__brand">M.A.D</div>
-      <p class="auth-card__tagline">Money Analysis &amp; Decisions</p>
+      <p class="auth-card__tagline" data-i18n="auth.tagline">Money Analysis &amp; Decisions</p>
 
       <div class="auth-tabs">
-        <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
-        <button class="auth-tab" id="auth-tab-signup" type="button">Sign Up</button>
+        <button class="auth-tab active" id="auth-tab-login" type="button" data-i18n="auth.tabLogin">Log In</button>
+        <button class="auth-tab" id="auth-tab-signup" type="button" data-i18n="auth.tabSignup">Sign Up</button>
       </div>
 
       <form class="modal__form auth-form" id="login-form" autocomplete="on">
         <div class="modal__field">
-          <label class="modal__label" for="login-identifier">Username or Email</label>
+          <label class="modal__label" for="login-identifier" data-i18n="auth.usernameOrEmail">Username or Email</label>
           <input type="text" id="login-identifier" class="modal__input" autocomplete="username" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="login-password">Password</label>
+          <label class="modal__label" for="login-password" data-i18n="auth.password">Password</label>
           <input type="password" id="login-password" class="modal__input" autocomplete="current-password" required />
         </div>
         <p class="auth-form__error" id="login-error" style="display: none;"></p>
-        <button type="submit" class="modal__save" id="login-submit">Log In</button>
+        <button type="submit" class="modal__save" id="login-submit" data-i18n="auth.tabLogin">Log In</button>
       </form>
 
       <form class="modal__form auth-form" id="signup-form" autocomplete="on" style="display: none;">
         <div class="modal__field">
-          <label class="modal__label" for="signup-username">Username</label>
+          <label class="modal__label" for="signup-username" data-i18n="auth.username">Username</label>
           <input type="text" id="signup-username" class="modal__input" autocomplete="username" minlength="3" maxlength="20" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="signup-email">Email</label>
+          <label class="modal__label" for="signup-email" data-i18n="auth.email">Email</label>
           <input type="email" id="signup-email" class="modal__input" autocomplete="email" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="signup-displayname">Display Name (optional)</label>
+          <label class="modal__label" for="signup-displayname" data-i18n="auth.displayNameOptional">Display Name (optional)</label>
           <input type="text" id="signup-displayname" class="modal__input" autocomplete="name" />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="signup-password">Password</label>
+          <label class="modal__label" for="signup-password" data-i18n="auth.password">Password</label>
           <input type="password" id="signup-password" class="modal__input" autocomplete="new-password" minlength="6" required />
         </div>
         <p class="auth-form__error" id="signup-error" style="display: none;"></p>
-        <button type="submit" class="modal__save" id="signup-submit">Create Account</button>
+        <button type="submit" class="modal__save" id="signup-submit" data-i18n="auth.createAccount">Create Account</button>
       </form>
 
       <div class="auth-divider" id="auth-divider" style="display: none;">
-        <span>or</span>
+        <span data-i18n="auth.or">or</span>
       </div>
       <div class="auth-google-btn" id="auth-google-btn" style="display: none;"></div>
     </div>
@@ -78,29 +83,29 @@
   <header class="topbar" id="topbar">
     <div class="topbar__logo">M.A.D</div>
     <div class="topbar__actions">
-      <button class="topbar__insights-btn jarvis-btn" id="jarvis-btn" title="Jarvis Advice Inbox">
+      <button class="topbar__insights-btn jarvis-btn" id="jarvis-btn" data-i18n-title="nav.jarvisInbox" title="Jarvis Advice Inbox">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         <span class="jarvis-btn__badge" id="jarvis-badge" style="display: none;"></span>
-        Inbox
+        <span data-i18n="nav.inbox">Inbox</span>
       </button>
       
       <div style="position: relative;">
-        <button class="topbar__notifications-btn" id="notifications-btn" title="Notifications" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative;">
+        <button class="topbar__notifications-btn" id="notifications-btn" data-i18n-title="common.notifications" title="Notifications" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <span class="notifications-btn__badge" id="notifications-badge" style="display: none; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: var(--error); border-radius: 50%;"></span>
         </button>
         <div class="notifications-menu" id="notifications-menu" style="display: none; position: absolute; top: 35px; right: 0; width: 280px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 1000; padding: 12px; max-height: 400px; overflow-y: auto;">
-          <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">Notifications</div>
+          <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;" data-i18n="notifications.title">Notifications</div>
           <div class="notifications-list" id="notifications-list" style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center; padding: 12px 0;">No new notifications</div>
+            <div style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center; padding: 12px 0;" data-i18n="notifications.empty">No new notifications</div>
           </div>
         </div>
       </div>
-      <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">
+      <button class="theme-toggle" id="theme-toggle" data-i18n-title="common.toggleTheme" title="Toggle dark/light mode">
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
@@ -118,13 +123,13 @@
           <div class="profile-menu__divider"></div>
           <button class="profile-menu__item" id="profile-menu-view">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            Settings
+            <span data-i18n="nav.settings">Settings</span>
           </button>
 
           <div class="profile-menu__divider"></div>
           <button class="profile-menu__item profile-menu__item--danger" id="profile-menu-logout">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Log Out
+            <span data-i18n="nav.logout">Log Out</span>
           </button>
         </div>
       </div>
@@ -154,7 +159,7 @@
         </div>
       </div>
       <div class="health-card__info">
-        <div class="health-card__label">Money Health Score</div>
+        <div class="health-card__label" data-i18n="health.title">Money Health Score</div>
         <div class="health-card__subtitle">Control mein hai, thoda aur better ho sakta hai 💪</div>
         <div class="health-card__trend" id="health-trend"></div>
         <span class="health-card__mood-badge" id="health-mood-badge" style="display:none;"></span>
@@ -182,11 +187,11 @@
         </button>
       </div>
       <div class="split-suggestions" id="split-suggestions" style="display:none;"></div>
-      <div class="hero-input__hint">Press <kbd>Enter ↵</kbd> to add instantly</div>
-      
+      <div class="hero-input__hint" data-i18n-html="input.hint">Press <kbd>Enter ↵</kbd> to add instantly</div>
+
       <!-- ═══════════ QUICK LOG CHIPS (NEW) ═══════════ -->
       <div class="quick-log-container" id="quick-log-container" style="display: none;">
-        <span class="quick-log-title">Quick Log:</span>
+        <span class="quick-log-title" data-i18n="quicklog.title">Quick Log:</span>
         <div class="quick-log-chips" id="quick-log-chips">
           <!-- Populated dynamically -->
         </div>
@@ -200,21 +205,21 @@
       <span class="preview__category" id="preview-category-val">—</span>
       <span class="preview__divider" id="preview-note-divider" style="display:none;">·</span>
       <span class="preview__note" id="preview-note-val" style="display:none;"></span>
-      <button class="preview__split-btn" id="open-split-picker-btn" type="button" style="display:none;">🤝 Split</button>
+      <button class="preview__split-btn" id="open-split-picker-btn" type="button" style="display:none;" data-i18n="action.split">🤝 Split</button>
     </section>
 
     <!-- ═══════════ SAVINGS GOALS SUMMARY (DASHBOARD) ═══════════ -->
     <section class="goals-summary" id="goals-summary-section">
       <div class="goals-summary__header">
-        <h2 class="goals-summary__title">🎯 Savings Goals</h2>
-        <button class="goals-summary__view-all" id="view-all-goals-btn">View All →</button>
+        <h2 class="goals-summary__title" data-i18n="goals.title">🎯 Savings Goals</h2>
+        <button class="goals-summary__view-all" id="view-all-goals-btn" data-i18n="common.viewAll">View All →</button>
       </div>
       <div class="goals-summary__stats" id="goals-summary-stats">
         <!-- Summary line: e.g. "3 Active | 1 Completed | ₹12,000 allocated" -->
       </div>
       <div class="goals-summary__cards" id="goals-summary-cards">
         <!-- Only high-priority active goals shown here -->
-        <div class="goals-list__empty" id="goals-summary-empty">
+        <div class="goals-list__empty" id="goals-summary-empty" data-i18n="goals.summaryEmpty">
           No savings goals yet. Tap "View All" to create one! 🎯
         </div>
       </div>
@@ -222,7 +227,7 @@
 
     <!-- ═══════════ BILL ALERTS BANNER (NEW) ═══════════ -->
     <section class="bill-alerts-section" id="bill-alerts-section" style="display: none;">
-      <h3 class="bill-alerts-section__title">Upcoming Payments 🔔</h3>
+      <h3 class="bill-alerts-section__title" data-i18n="bills.title">Upcoming Payments 🔔</h3>
       <div class="bill-alerts-list" id="bill-alerts-list">
         <!-- Dynamic alert cards -->
       </div>
@@ -231,12 +236,12 @@
     <!-- ═══════════ RECENT TRANSACTIONS ═══════════ -->
     <section class="transactions" id="transactions-section">
       <div class="transactions__header">
-        <h2 class="transactions__title">Recent</h2>
-        <button class="transactions__view-all" id="view-all-btn">View All →</button>
+        <h2 class="transactions__title" data-i18n="transactions.recentTitle">Recent</h2>
+        <button class="transactions__view-all" id="view-all-btn" data-i18n="common.viewAll">View All →</button>
       </div>
       <div class="transactions__list" id="transactions-list">
         <!-- Populated by JS -->
-        <div class="transactions__empty" id="transactions-empty">
+        <div class="transactions__empty" id="transactions-empty" data-i18n="transactions.empty">
           No transactions yet. Start typing above! ☝️
         </div>
       </div>
@@ -252,7 +257,7 @@
           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
         </svg>
       </button>
-      <h2 class="overlay__title">All Transactions</h2>
+      <h2 class="overlay__title" data-i18n="transactions.allTitle">All Transactions</h2>
       <span class="overlay__count" id="view-all-count">0</span>
     </div>
     <div class="overlay__list" id="view-all-list"></div>
@@ -266,7 +271,7 @@
           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
         </svg>
       </button>
-      <h2 class="overlay__title">Insights Overview</h2>
+      <h2 class="overlay__title" data-i18n="insights.title">Insights Overview</h2>
       <span class="overlay__count" id="insights-month">—</span>
     </div>
     
@@ -274,20 +279,20 @@
       <!-- Summary Cards Grid -->
       <div class="insights-grid">
         <div class="insight-card income">
-          <div class="insight-card__label">Credited</div>
+          <div class="insight-card__label" data-i18n="insights.credited">Credited</div>
           <div class="insight-card__value" id="insight-income">₹0</div>
         </div>
         <div class="insight-card expense">
-          <div class="insight-card__label">Debited</div>
+          <div class="insight-card__label" data-i18n="insights.debited">Debited</div>
           <div class="insight-card__value" id="insight-expense">₹0</div>
         </div>
         <div class="insight-card savings">
-          <div class="insight-card__label">Savings</div>
+          <div class="insight-card__label" data-i18n="insights.savings">Savings</div>
           <div class="insight-card__value" id="insight-savings">₹0</div>
           <div class="insight-card__badge" id="insight-savings-rate">0% savings rate</div>
         </div>
         <div class="insight-card health">
-          <div class="insight-card__label">M.A.D Score</div>
+          <div class="insight-card__label" data-i18n="insights.madScore">M.A.D Score</div>
           <div class="insight-card__value" id="insight-health">0/100</div>
           <div class="insight-card__badge" id="insight-health-desc">—</div>
         </div>
@@ -295,12 +300,12 @@
 
       <!-- Expense Breakdown (Donut Chart) -->
       <div class="chart-section">
-        <h3 class="chart-section__title">Expense Breakdown</h3>
+        <h3 class="chart-section__title" data-i18n="insights.expenseBreakdown">Expense Breakdown</h3>
         <div class="donut-chart-wrapper">
           <div class="donut-chart" id="donut-chart">
             <div class="donut-chart__center">
               <span class="donut-chart__center-val" id="donut-total">₹0</span>
-              <span class="donut-chart__center-label">Spent</span>
+              <span class="donut-chart__center-label" data-i18n="insights.spent">Spent</span>
             </div>
           </div>
         </div>
@@ -312,10 +317,10 @@
       <!-- Spend Trend (SVG Chart) -->
       <div class="chart-section">
         <div class="chart-section__header">
-          <h3 class="chart-section__title">Trend (Last 30 Days)</h3>
+          <h3 class="chart-section__title" data-i18n="insights.trendTitle">Trend (Last 30 Days)</h3>
           <div class="trend-toggle">
-            <button class="trend-toggle__btn active" id="trend-btn-daily">Daily</button>
-            <button class="trend-toggle__btn" id="trend-btn-weekly">Weekly</button>
+            <button class="trend-toggle__btn active" id="trend-btn-daily" data-i18n="insights.daily">Daily</button>
+            <button class="trend-toggle__btn" id="trend-btn-weekly" data-i18n="insights.weekly">Weekly</button>
           </div>
         </div>
         <div class="trend-chart-wrapper" id="trend-chart-container">
@@ -344,7 +349,7 @@
   <div class="modal-backdrop" id="edit-backdrop" style="display: none;">
     <div class="modal" id="edit-modal">
       <div class="modal__header">
-        <h3 class="modal__title">Edit Transaction</h3>
+        <h3 class="modal__title" data-i18n="modal.editTransaction">Edit Transaction</h3>
         <button class="modal__close" id="edit-close">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
@@ -354,38 +359,38 @@
       <form class="modal__form" id="edit-form">
         <input type="hidden" id="edit-id" />
         <div class="modal__field">
-          <label class="modal__label" for="edit-amount">Amount</label>
+          <label class="modal__label" for="edit-amount" data-i18n="field.amount">Amount</label>
           <input type="number" id="edit-amount" class="modal__input" step="0.01" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="edit-note">Note</label>
+          <label class="modal__label" for="edit-note" data-i18n="field.note">Note</label>
           <input type="text" id="edit-note" class="modal__input" />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="edit-category">Category</label>
+          <label class="modal__label" for="edit-category" data-i18n="field.category">Category</label>
           <select id="edit-category" class="modal__input modal__select">
-            <option value="Food">🍔 Food</option>
-            <option value="Travel">🚗 Travel</option>
-            <option value="Subscription">📺 Subscription</option>
-            <option value="Housing">🏠 Housing</option>
-            <option value="Shopping">🛍️ Shopping</option>
-            <option value="Health">💊 Health</option>
-            <option value="Grocery">🥬 Grocery</option>
-            <option value="Smoking">🚬 Smoking</option>
-            <option value="Alcohol">🍺 Alcohol</option>
-            <option value="Income">💰 Income</option>
-            <option value="Finance">🏦 Finance</option>
-            <option value="Others">📦 Others</option>
+            <option value="Food" data-i18n="category.food">🍔 Food</option>
+            <option value="Travel" data-i18n="category.travel">🚗 Travel</option>
+            <option value="Subscription" data-i18n="category.subscription">📺 Subscription</option>
+            <option value="Housing" data-i18n="category.housing">🏠 Housing</option>
+            <option value="Shopping" data-i18n="category.shopping">🛍️ Shopping</option>
+            <option value="Health" data-i18n="category.health">💊 Health</option>
+            <option value="Grocery" data-i18n="category.grocery">🥬 Grocery</option>
+            <option value="Smoking" data-i18n="category.smoking">🚬 Smoking</option>
+            <option value="Alcohol" data-i18n="category.alcohol">🍺 Alcohol</option>
+            <option value="Income" data-i18n="category.income">💰 Income</option>
+            <option value="Finance" data-i18n="category.finance">🏦 Finance</option>
+            <option value="Others" data-i18n="category.others">📦 Others</option>
           </select>
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="edit-type">Type</label>
+          <label class="modal__label" for="edit-type" data-i18n="field.type">Type</label>
           <select id="edit-type" class="modal__input modal__select">
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
+            <option value="expense" data-i18n="type.expense">Expense</option>
+            <option value="income" data-i18n="type.income">Income</option>
           </select>
         </div>
-        <button type="submit" class="modal__save">Save Changes</button>
+        <button type="submit" class="modal__save" data-i18n="action.saveChanges">Save Changes</button>
       </form>
     </div>
   </div>
@@ -398,7 +403,7 @@
           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
         </svg>
       </button>
-      <h2 class="overlay__title">Jarvis Active Advice</h2>
+      <h2 class="overlay__title" data-i18n="jarvis.title">Jarvis Active Advice</h2>
       <span class="overlay__count" id="jarvis-advice-count">0</span>
     </div>
     <div class="jarvis-container" id="jarvis-advice-list" style="padding: 16px;">
@@ -414,19 +419,19 @@
           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
         </svg>
       </button>
-      <h2 class="overlay__title">🎯 All Savings Goals</h2>
+      <h2 class="overlay__title" data-i18n="goals.allTitle">🎯 All Savings Goals</h2>
       <button class="goals-section__add-btn" id="open-goal-modal-overlay-btn" style="margin-left: auto;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <path d="M12 5v14M5 12h14"/>
         </svg>
-        Add Goal
+        <span data-i18n="goals.addGoal">Add Goal</span>
       </button>
     </div>
     <div class="goals-overlay-container" style="padding: 16px; height: calc(100% - 64px); overflow-y: auto;">
       <div class="goals-overlay__allocation" id="goals-overlay-allocation" style="margin-bottom: 16px;"></div>
       <div class="goals-list" id="goals-list">
         <!-- Full list populated by JS -->
-        <div class="goals-list__empty" id="goals-empty">
+        <div class="goals-list__empty" id="goals-empty" data-i18n="goals.empty">
           No savings goals yet. Add one to track progress! 🎯
         </div>
       </div>
@@ -441,63 +446,61 @@
           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
         </svg>
       </button>
-      <h2 class="overlay__title">⚡ Bill Automations</h2>
+      <h2 class="overlay__title" data-i18n="automation.title">⚡ Bill Automations</h2>
     </div>
     
     <div class="automation-container" style="padding: 16px; display: flex; flex-direction: column; gap: 20px; height: calc(100% - 64px); overflow-y: auto;">
       <!-- Section 1: Add Automation form -->
       <div class="automation-form-wrapper" style="background: rgba(240,240,245,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
-        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--accent-1); display: flex; align-items: center; gap: 6px;">
-          <span>➕</span> Add Recurring Bill
-        </h3>
+        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--accent-1); display: flex; align-items: center; gap: 6px;" data-i18n="automation.addRecurring">➕ Add Recurring Bill</h3>
         <form class="modal__form" id="automation-form" style="gap: 10px;">
           <div class="modal__field">
-            <label class="modal__label" for="auto-note">Bill Note / Name</label>
-            <input type="text" id="auto-note" class="modal__input" placeholder="e.g. Netflix Subscription" required />
+            <label class="modal__label" for="auto-note" data-i18n="automation.billNote">Bill Note / Name</label>
+            <input type="text" id="auto-note" class="modal__input" data-i18n-placeholder="automation.billNotePlaceholder" placeholder="e.g. Netflix Subscription" required />
           </div>
           <div class="modal__field" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
-              <label class="modal__label" for="auto-amount">Amount (₹)</label>
+              <label class="modal__label" for="auto-amount" data-i18n="field.amountRupee">Amount (₹)</label>
               <input type="number" id="auto-amount" class="modal__input" placeholder="199" min="1" required />
             </div>
             <div>
-              <label class="modal__label" for="auto-category">Category</label>
+              <label class="modal__label" for="auto-category" data-i18n="field.category">Category</label>
               <select id="auto-category" class="modal__input modal__select" required>
-                <option value="Subscription">📺 Subscription</option>
-                <option value="Housing">🏠 Rent/Housing</option>
-                <option value="Travel">🚗 Travel/Commute</option>
-                <option value="Food">🍔 Food</option>
-                <option value="Health">💊 Health</option>
-                <option value="Grocery">🥬 Grocery</option>
-                <option value="Others">📦 Others</option>
+                <option value="Subscription" data-i18n="category.subscription">📺 Subscription</option>
+                <option value="Housing" data-i18n="category.rentHousing">🏠 Rent/Housing</option>
+                <option value="Travel" data-i18n="category.travelCommute">🚗 Travel/Commute</option>
+                <option value="Food" data-i18n="category.food">🍔 Food</option>
+                <option value="Health" data-i18n="category.health">💊 Health</option>
+                <option value="Grocery" data-i18n="category.grocery">🥬 Grocery</option>
+                <option value="Others" data-i18n="category.others">📦 Others</option>
               </select>
             </div>
           </div>
           <div class="modal__field" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
-              <label class="modal__label" for="auto-frequency">Frequency</label>
+              <label class="modal__label" for="auto-frequency" data-i18n="automation.frequency">Frequency</label>
               <select id="auto-frequency" class="modal__input modal__select">
-                <option value="daily">Daily</option>
-                <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-                <option value="yearly">Yearly</option>
+                <option value="daily" data-i18n="frequency.daily">Daily</option>
+                <option value="monthly" data-i18n="frequency.monthly">Monthly</option>
+                <option value="weekly" data-i18n="frequency.weekly">Weekly</option>
+                <option value="yearly" data-i18n="frequency.yearly">Yearly</option>
               </select>
             </div>
             <div>
-              <label class="modal__label" for="auto-due-date">Next Due Date</label>
+              <label class="modal__label" for="auto-due-date" data-i18n="automation.nextDueDate">Next Due Date</label>
               <input type="date" id="auto-due-date" class="modal__input" required />
             </div>
           </div>
-          <button type="submit" class="modal__save" style="margin-top: 10px; width: 100%; height: 36px; padding: 0;">Add Automation</button>
+          <button type="submit" class="modal__save" style="margin-top: 10px; width: 100%; height: 36px; padding: 0;" data-i18n="automation.addButton">Add Automation</button>
         </form>
       </div>
 
       <!-- Section 2: Active automations list -->
       <div class="automation-list-wrapper">
-        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">Active Automations</h3>
+        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);" data-i18n="automation.activeTitle">Active Automations</h3>
         <div class="automation-list" id="automation-list" style="display: flex; flex-direction: column; gap: 10px;">
           <!-- Populated by JS -->
-          <div style="text-align:center; padding:20px; color:rgba(240,240,245,0.2); font-size:0.8rem; border:1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+          <div style="text-align:center; padding:20px; color:rgba(240,240,245,0.2); font-size:0.8rem; border:1px dashed var(--border-subtle); border-radius: var(--radius-md);" data-i18n="automation.empty">
             No active automations yet.
           </div>
         </div>
@@ -509,7 +512,7 @@
   <div class="modal-backdrop" id="goal-backdrop" style="display: none;">
     <div class="modal" id="goal-modal">
       <div class="modal__header">
-        <h3 class="modal__title">Create Savings Goal</h3>
+        <h3 class="modal__title" data-i18n="goal.createTitle">Create Savings Goal</h3>
         <button class="modal__close" id="goal-close">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
@@ -518,23 +521,23 @@
       </div>
       <form class="modal__form" id="goal-form">
         <div class="modal__field">
-          <label class="modal__label" for="goal-title">Goal Name</label>
-          <input type="text" id="goal-title" class="modal__input" placeholder="e.g. New Laptop" required />
+          <label class="modal__label" for="goal-title" data-i18n="goal.name">Goal Name</label>
+          <input type="text" id="goal-title" class="modal__input" data-i18n-placeholder="goal.namePlaceholder" placeholder="e.g. New Laptop" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="goal-amount">Target Amount (₹)</label>
-          <input type="number" id="goal-amount" class="modal__input" placeholder="e.g. 50000" min="1" required />
+          <label class="modal__label" for="goal-amount" data-i18n="goal.targetAmount">Target Amount (₹)</label>
+          <input type="number" id="goal-amount" class="modal__input" data-i18n-placeholder="goal.targetPlaceholder" placeholder="e.g. 50000" min="1" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="goal-duration">Duration (Months)</label>
-          <input type="number" id="goal-duration" class="modal__input" placeholder="e.g. 6" min="1" required />
+          <label class="modal__label" for="goal-duration" data-i18n="goal.duration">Duration (Months)</label>
+          <input type="number" id="goal-duration" class="modal__input" data-i18n-placeholder="goal.durationPlaceholder" placeholder="e.g. 6" min="1" required />
         </div>
         <div class="modal__field">
-          <label class="modal__label" for="goal-priority">Priority</label>
+          <label class="modal__label" for="goal-priority" data-i18n="goal.priority">Priority</label>
           <select id="goal-priority" class="modal__input modal__select">
-            <option value="3">🔥 High</option>
-            <option value="2">⚡ Medium</option>
-            <option value="1">🌱 Low</option>
+            <option value="3" data-i18n="priority.high">🔥 High</option>
+            <option value="2" data-i18n="priority.medium">⚡ Medium</option>
+            <option value="1" data-i18n="priority.low">🌱 Low</option>
           </select>
         </div>
         
@@ -542,20 +545,20 @@
         <div class="feasibility-indicator" id="goal-feasibility" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; background: rgba(240,240,245,0.03);">
           <div class="feasibility-indicator__title" style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px;">
             <span class="feasibility-indicator__dot" id="feasibility-dot" style="width: 8px; height: 8px; border-radius: 50%;"></span>
-            <span class="feasibility-indicator__status-text" id="feasibility-status">Checking...</span>
+            <span class="feasibility-indicator__status-text" id="feasibility-status" data-i18n="goal.checking">Checking...</span>
           </div>
           <div class="feasibility-indicator__details" id="feasibility-desc" style="font-size: 0.8rem; color: var(--text-tertiary); line-height: 1.4; margin-bottom: 10px;"></div>
           
           <!-- State 3 Suggestions box -->
           <div class="feasibility-suggestions" id="feasibility-suggestions" style="display: none;">
-            <div class="feasibility-suggestions__title" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Jarvis Recommendations:</div>
+            <div class="feasibility-suggestions__title" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;" data-i18n="goal.jarvisRecommendations">Jarvis Recommendations:</div>
             <div class="feasibility-suggestions__list" id="feasibility-suggestions-list" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Dynamically populated buttons -->
             </div>
           </div>
         </div>
 
-        <button type="submit" class="modal__save" id="goal-submit-btn">Create Goal</button>
+        <button type="submit" class="modal__save" id="goal-submit-btn" data-i18n="goal.createButton">Create Goal</button>
       </form>
     </div>
   </div>
@@ -564,7 +567,7 @@
   <div class="modal-backdrop" id="split-backdrop" style="display: none;">
     <div class="modal" id="split-modal">
       <div class="modal__header">
-        <h3 class="modal__title">Split This Expense</h3>
+        <h3 class="modal__title" data-i18n="split.title">Split This Expense</h3>
         <button class="modal__close" id="split-close">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
@@ -574,8 +577,8 @@
       <div class="modal__form" id="split-form">
         <div class="modal__field">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label class="modal__label" style="margin-bottom: 0;">Split with</label>
-            <button type="button" id="split-add-friend-btn" style="background: none; border: none; color: var(--accent-1); font-size: 0.85rem; font-weight: 600; cursor: pointer;">+ Add Friend</button>
+            <label class="modal__label" style="margin-bottom: 0;" data-i18n="split.with">Split with</label>
+            <button type="button" id="split-add-friend-btn" style="background: none; border: none; color: var(--accent-1); font-size: 0.85rem; font-weight: 600; cursor: pointer;" data-i18n="split.addFriend">+ Add Friend</button>
           </div>
           <div class="split-friend-chips" id="split-friend-chips">
             <!-- Populated dynamically: known-friend chips + "+ Add" chip -->
@@ -584,12 +587,12 @@
         </div>
 
         <div class="modal__field" id="split-method-field" style="display:none;">
-          <label class="modal__label">Split Method</label>
+          <label class="modal__label" data-i18n="split.method">Split Method</label>
           <div class="split-method-selector" id="split-method-selector">
-            <button type="button" class="split-method-btn split-method-btn--active" data-method="equally">Equally</button>
-            <button type="button" class="split-method-btn" data-method="exact">Exact</button>
-            <button type="button" class="split-method-btn" data-method="percentage">Percentage</button>
-            <button type="button" class="split-method-btn" data-method="shares">Shares</button>
+            <button type="button" class="split-method-btn split-method-btn--active" data-method="equally" data-i18n="splitMethod.equally">Equally</button>
+            <button type="button" class="split-method-btn" data-method="exact" data-i18n="splitMethod.exact">Exact</button>
+            <button type="button" class="split-method-btn" data-method="percentage" data-i18n="splitMethod.percentage">Percentage</button>
+            <button type="button" class="split-method-btn" data-method="shares" data-i18n="splitMethod.shares">Shares</button>
           </div>
         </div>
 
@@ -601,7 +604,7 @@
           <!-- Live computed breakdown + validation message -->
         </div>
 
-        <button type="button" class="modal__save" id="split-submit-btn" disabled>Add Split</button>
+        <button type="button" class="modal__save" id="split-submit-btn" disabled data-i18n="split.addButton">Add Split</button>
       </div>
     </div>
   </div>
@@ -633,19 +636,19 @@
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
       </button>
-      <h2 class="overlay__title">👥 Group Ledger</h2>
+      <h2 class="overlay__title" data-i18n="ledger.title">👥 Group Ledger</h2>
     </div>
     
     <div class="overlay__content">
       <div class="health-card" style="margin-bottom: 24px; display: block;">
-        <div class="health-card__label">Net Balance</div>
+        <div class="health-card__label" data-i18n="ledger.netBalance">Net Balance</div>
         <div style="margin-top: 8px;">
           <span class="health-card__number" id="ledger-total-balance" style="font-size: 2rem;">₹0</span>
         </div>
-        <div class="health-card__subtitle" id="ledger-total-subtitle" style="margin-top: 8px;">You owe nothing!</div>
+        <div class="health-card__subtitle" id="ledger-total-subtitle" style="margin-top: 8px;" data-i18n="ledger.owesNothing">You owe nothing!</div>
       </div>
 
-      <h3 class="chart-section__title" style="margin-bottom: 12px;">Friends & Balances</h3>
+      <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="ledger.friendsAndBalances">Friends & Balances</h3>
       <div class="transactions-list" id="ledger-list">
         <!-- Dynamic ledger cards -->
       </div>
@@ -661,7 +664,7 @@
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
       </button>
-      <h2 class="overlay__title">Settings</h2>
+      <h2 class="overlay__title" data-i18n="nav.settings">Settings</h2>
     </div>
     
     <div class="overlay__content" style="padding: 16px 16px 90px; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
@@ -681,14 +684,14 @@
 
       <!-- Financial Profile -->
       <div class="settings-section">
-        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Financial Profile</div>
+        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;" data-i18n="settings.financialProfile">Financial Profile</div>
         <div class="settings-card" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden;">
           <div class="settings-item" id="settings-income-btn" style="display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border-subtle); cursor: pointer;">
             <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Monthly Income</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.monthlyIncome">Monthly Income</div>
               <div style="font-size: 0.85rem; color: var(--text-secondary);" id="settings-monthly-income">₹0</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -698,14 +701,14 @@
 
       <!-- Appearance -->
       <div class="settings-section">
-        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Appearance</div>
+        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;" data-i18n="settings.appearance">Appearance</div>
         <div class="settings-card" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden;">
-          <div class="settings-item" id="settings-darkmode-toggle" style="display: flex; align-items: center; gap: 16px; padding: 16px; cursor: pointer;">
+          <div class="settings-item" id="settings-darkmode-toggle" style="display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border-subtle); cursor: pointer;">
             <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Dark Mode</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.darkMode">Dark Mode</div>
               <div style="font-size: 0.85rem; color: var(--text-secondary);" id="settings-darkmode-status">On</div>
             </div>
             <!-- Custom Toggle Switch -->
@@ -713,12 +716,25 @@
               <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; right: 2px; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
             </div>
           </div>
+          <div class="settings-item" id="settings-language-item" style="display: flex; align-items: center; gap: 16px; padding: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;" data-i18n="settings.language">Language</div>
+              <div class="lang-selector" id="settings-lang-selector">
+                <button type="button" class="lang-selector__btn" data-lang="en">English</button>
+                <button type="button" class="lang-selector__btn" data-lang="hi">हिंदी</button>
+                <button type="button" class="lang-selector__btn" data-lang="hinglish">Hinglish</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Quick Access -->
       <div class="settings-section">
-        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Quick Access</div>
+        <div class="settings-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;" data-i18n="settings.quickAccess">Quick Access</div>
         <div class="settings-card" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;">
           
           <div class="settings-item" id="settings-bills-btn" style="display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border-subtle); cursor: pointer;">
@@ -726,8 +742,8 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Bills & Reminders</div>
-              <div style="font-size: 0.85rem; color: var(--text-secondary);">Manage recurring bills</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.billsReminders">Bills & Reminders</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="settings.billsRemindersDesc">Manage recurring bills</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
@@ -737,8 +753,8 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Split Expenses</div>
-              <div style="font-size: 0.85rem; color: var(--text-secondary);">Groups & settlements</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.splitExpenses">Split Expenses</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="settings.splitExpensesDesc">Groups & settlements</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
@@ -748,8 +764,8 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Reports</div>
-              <div style="font-size: 0.85rem; color: var(--text-secondary);">Monthly reality check</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.reports">Reports</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="settings.reportsDesc">Monthly reality check</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
@@ -759,8 +775,8 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2v1"></path><path d="M12 7a5 5 0 0 0-5 5c0 2 1.5 3 2 5h6c.5-2 2-3 2-5a5 5 0 0 0-5-5z"></path></svg>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Future Simulator</div>
-              <div style="font-size: 0.85rem; color: var(--text-secondary);">What-if scenarios</div>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;" data-i18n="settings.futureSimulator">Future Simulator</div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="settings.futureSimulatorDesc">What-if scenarios</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
@@ -776,7 +792,7 @@
       <button class="overlay__back" id="edit-profile-back">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
-      <h2 class="overlay__title">Profile Details</h2>
+      <h2 class="overlay__title" data-i18n="profile.detailsTitle">Profile Details</h2>
     </div>
     
     <div class="overlay__content" style="padding: 16px 16px 90px; display: flex; flex-direction: column; gap: 24px; background: var(--bg-main);">
@@ -798,39 +814,39 @@
       <!-- QR Code Section -->
       <div class="profile-qr-card" style="display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 24px;">
         <div id="profile-qr-canvas" style="border-radius: 8px; margin-bottom: 12px; background: white; padding: 8px; display: inline-block;"></div>
-        <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;">Scan to add me as a friend on M.A.D</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;" data-i18n="profile.qrHint">Scan to add me as a friend on M.A.D</div>
       </div>
 
       <!-- Edit Profile Section -->
       <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
-        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Edit Profile</h3>
+        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);" data-i18n="profile.editTitle">Edit Profile</h3>
         <form class="modal__form" id="edit-profile-form" style="gap: 10px;">
           <div class="modal__field">
-            <label class="modal__label" for="edit-profile-displayname">Display Name</label>
+            <label class="modal__label" for="edit-profile-displayname" data-i18n="profile.displayName">Display Name</label>
             <input type="text" id="edit-profile-displayname" class="modal__input" />
           </div>
           <div class="modal__field">
-            <label class="modal__label" for="edit-profile-email">Email</label>
+            <label class="modal__label" for="edit-profile-email" data-i18n="field.email">Email</label>
             <input type="email" id="edit-profile-email" class="modal__input" required />
           </div>
 
-          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;">Save Profile</button>
+          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;" data-i18n="profile.saveButton">Save Profile</button>
         </form>
       </div>
 
       <!-- Change Password Section -->
       <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
-        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Change Password</h3>
+        <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);" data-i18n="profile.changePasswordTitle">Change Password</h3>
         <form class="modal__form" id="change-password-form" style="gap: 10px;">
           <div class="modal__field">
-            <label class="modal__label" for="change-pwd-current">Current Password</label>
+            <label class="modal__label" for="change-pwd-current" data-i18n="profile.currentPassword">Current Password</label>
             <input type="password" id="change-pwd-current" class="modal__input" required />
           </div>
           <div class="modal__field">
-            <label class="modal__label" for="change-pwd-new">New Password</label>
+            <label class="modal__label" for="change-pwd-new" data-i18n="profile.newPassword">New Password</label>
             <input type="password" id="change-pwd-new" class="modal__input" minlength="6" required />
           </div>
-          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;">Update Password</button>
+          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;" data-i18n="profile.updatePasswordButton">Update Password</button>
         </form>
       </div>
     </div>
@@ -840,18 +856,18 @@
   <div class="popup-backdrop" id="edit-income-overlay">
     <div class="popup-window">
       <div class="popup-header">
-        <h2 class="popup-title">Monthly Income</h2>
-        <button class="popup-close" id="edit-income-back" title="Close">
+        <h2 class="popup-title" data-i18n="settings.monthlyIncome">Monthly Income</h2>
+        <button class="popup-close" id="edit-income-back" title="Close" data-i18n-title="common.close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; margin-top: -8px;">Set your baseline monthly income.</p>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; margin-top: -8px;" data-i18n="income.description">Set your baseline monthly income.</p>
       <form class="modal__form" id="edit-income-form" style="gap: 12px;">
         <div class="modal__field">
-          <label class="modal__label" for="edit-income-input">Amount (₹)</label>
-          <input type="number" id="edit-income-input" class="modal__input" min="0" placeholder="e.g. 50000" required />
+          <label class="modal__label" for="edit-income-input" data-i18n="field.amountRupee">Amount (₹)</label>
+          <input type="number" id="edit-income-input" class="modal__input" min="0" data-i18n-placeholder="goal.targetPlaceholder" placeholder="e.g. 50000" required />
         </div>
-        <button type="submit" class="modal__save" style="margin-top: 8px; height: 40px; padding: 0;">Save Income</button>
+        <button type="submit" class="modal__save" style="margin-top: 8px; height: 40px; padding: 0;" data-i18n="income.saveButton">Save Income</button>
       </form>
     </div>
   </div>
@@ -862,16 +878,16 @@
       <button class="overlay__back" id="add-friend-back">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
-      <h2 class="overlay__title">Add Friend</h2>
+      <h2 class="overlay__title" data-i18n="friend.addTitle">Add Friend</h2>
     </div>
     <div class="overlay__content" style="padding: 16px 16px 90px;">
       <div class="automation-form-wrapper" style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Connect with friends to easily split bills and manage shared expenses.</p>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;" data-i18n="friend.addDescription">Connect with friends to easily split bills and manage shared expenses.</p>
         <form class="modal__form" id="add-friend-form" style="gap: 10px;">
           <div class="modal__field">
-            <input type="text" id="add-friend-input" class="modal__input" placeholder="Enter Username or Email" required />
+            <input type="text" id="add-friend-input" class="modal__input" data-i18n-placeholder="friend.inputPlaceholder" placeholder="Enter Username or Email" required />
           </div>
-          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;">Send Request</button>
+          <button type="submit" class="modal__save" style="margin-top: 5px; height: 36px; padding: 0;" data-i18n="friend.sendRequest">Send Request</button>
         </form>
       </div>
     </div>
@@ -885,7 +901,7 @@
         <path d="M4 11.5L12 4l8 7.5"/>
         <path d="M6 10v9a1 1 0 0 0 1 1h3v-5a2 2 0 1 1 4 0v5h3a1 1 0 0 0 1-1v-9"/>
       </svg>
-      Home
+      <span data-i18n="nav.home">Home</span>
     </button>
     <button class="bottom-nav__item" id="insights-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -894,7 +910,7 @@
         <circle cx="11.5" cy="13.5" r="1.3" fill="currentColor" stroke="none"/>
         <circle cx="17" cy="6" r="1.3" fill="currentColor" stroke="none"/>
       </svg>
-      Insights
+      <span data-i18n="nav.insightsTab">Insights</span>
     </button>
     <button class="bottom-nav__item" id="ledger-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -903,7 +919,7 @@
         <path d="M12 5l-6.5 1.2L4 11a3.5 3.5 0 0 0 7 0l-1.5-4.8z"/>
         <path d="M12 5l6.5 1.2L20 11a3.5 3.5 0 0 1-7 0l1.5-4.8z"/>
       </svg>
-      Ledger
+      <span data-i18n="nav.ledger">Ledger</span>
     </button>
     <button class="bottom-nav__item" id="automation-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -911,12 +927,12 @@
         <path d="M19 14.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>
         <path d="M5.5 15.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/>
       </svg>
-      Auto
+      <span data-i18n="nav.auto">Auto</span>
     </button>
   </nav>
 
   <!-- ═══════════ FLOATING ACTION BUTTON ═══════════ -->
-  <button class="fab" id="fab-add-btn" aria-label="Quick add transaction" title="Quick add">
+  <button class="fab" id="fab-add-btn" aria-label="Quick add transaction" data-i18n-aria-label="action.quickAdd" title="Quick add">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 12h14"/>
       <path d="M12 5v14"/>
@@ -925,11 +941,11 @@
 
   <!-- ═══════════ QUICK ADD BOTTOM SHEET ═══════════ -->
   <div class="sheet-backdrop" id="quick-add-backdrop"></div>
-  <div class="bottom-sheet" id="quick-add-sheet" role="dialog" aria-label="Quick add transaction">
+  <div class="bottom-sheet" id="quick-add-sheet" role="dialog" aria-label="Quick add transaction" data-i18n-aria-label="action.quickAdd">
     <div class="bottom-sheet__handle" id="quick-add-handle"></div>
     <div class="bottom-sheet__header">
-      <span class="bottom-sheet__title">⚡ Quick Add</span>
-      <button class="bottom-sheet__close" id="quick-add-close" aria-label="Close">✕</button>
+      <span class="bottom-sheet__title" data-i18n="quickadd.title">⚡ Quick Add</span>
+      <button class="bottom-sheet__close" id="quick-add-close" aria-label="Close" data-i18n-aria-label="common.close">✕</button>
     </div>
     <div class="bottom-sheet__input-wrapper">
       <span class="bottom-sheet__rupee">₹</span>
@@ -941,12 +957,13 @@
       </button>
     </div>
     <div class="bottom-sheet__chips" id="quick-add-chips"></div>
-    <div class="bottom-sheet__hint">Type naturally — "500 rent", "+2000 salary", "300 movie split with Rohan"</div>
+    <div class="bottom-sheet__hint" data-i18n="quickadd.hint">Type naturally — "500 rent", "+2000 salary", "300 movie split with Rohan"</div>
   </div>
 
   <!-- ═══════════ TOAST ═══════════ -->
   <div class="toast-container" id="toast-container"></div>
 
+  <script src="i18n.js"></script>
   <script src="app.js?v=2"></script>
 </body>
 </html>

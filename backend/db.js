@@ -46,6 +46,13 @@ try {
 // allows many NULLs (non-Google accounts) but enforces uniqueness when set.
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_googleId ON users(googleId) WHERE googleId IS NOT NULL');
 
+// Migration for language (UI language preference)
+try {
+  db.exec("ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'en'");
+} catch (e) {
+  // Column already exists, ignore
+}
+
 // Create transactions table
 db.exec(`
   CREATE TABLE IF NOT EXISTS transactions (
@@ -388,15 +395,15 @@ const insertUser = db.prepare(`
 `);
 
 const getUserByEmail = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE lower(email) = lower(@email)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, language, createdAt FROM users WHERE lower(email) = lower(@email)
 `);
 
 const getUserByUsername = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE lower(username) = lower(@username)
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, language, createdAt FROM users WHERE lower(username) = lower(@username)
 `);
 
 const getUserByGoogleId = db.prepare(`
-  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, createdAt FROM users WHERE googleId = @googleId
+  SELECT id, username, email, passwordHash, displayName, avatarUrl, monthlyIncome, googleId, language, createdAt FROM users WHERE googleId = @googleId
 `);
 
 const linkGoogleId = db.prepare('UPDATE users SET googleId = @googleId WHERE id = @id');
@@ -407,7 +414,7 @@ const insertGoogleUser = db.prepare(`
 `);
 
 const getUserById = db.prepare(`
-  SELECT id, username, email, displayName, avatarUrl, monthlyIncome, createdAt FROM users WHERE id = @id
+  SELECT id, username, email, displayName, avatarUrl, monthlyIncome, language, createdAt FROM users WHERE id = @id
 `);
 
 const searchUsersByEmailOrUsername = db.prepare(`
@@ -417,7 +424,7 @@ const searchUsersByEmailOrUsername = db.prepare(`
   LIMIT 20
 `);
 
-const updateUserProfile = db.prepare('UPDATE users SET displayName = @displayName, email = @email, monthlyIncome = @monthlyIncome WHERE id = @id');
+const updateUserProfile = db.prepare('UPDATE users SET displayName = @displayName, email = @email, monthlyIncome = @monthlyIncome, language = @language WHERE id = @id');
 const updateUserPassword = db.prepare('UPDATE users SET passwordHash = @passwordHash WHERE id = @id');
 const updateUserAvatar = db.prepare('UPDATE users SET avatarUrl = @avatarUrl WHERE id = @id');
 

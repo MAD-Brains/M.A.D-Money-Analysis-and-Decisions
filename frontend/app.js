@@ -347,7 +347,8 @@ mainInput.addEventListener('input', () => {
   // Note & Split
   let displayNote = parsed.note || '';
   if (parsed.splitWith) {
-    displayNote += displayNote ? ` (Splitting with ${parsed.splitWith})` : `Splitting with ${parsed.splitWith}`;
+    const splittingWith = t('preview.splittingWith', { name: parsed.splitWith });
+    displayNote += displayNote ? ` (${splittingWith})` : splittingWith;
   }
 
   if (displayNote) {
@@ -375,7 +376,7 @@ async function submitTransaction() {
   // Quick local validation
   const parsed = parseInputLocally(input);
   if (!parsed || parsed.amount == null) {
-    showToast('Amount missing! Try: 250 swiggy', true);
+    showToast(t('toast.amountMissing'), true);
     return;
   }
 
@@ -395,19 +396,19 @@ async function submitTransaction() {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      showToast(data.error || 'Something went wrong', true);
+      showToast(data.error || t('toast.somethingWrong'), true);
       return;
     }
 
     const { amount, category } = data.transaction;
-    showToast(`₹${amount.toLocaleString('en-IN')} ${category} added ✓`);
+    showToast(t('toast.transactionAdded', { amount: amount.toLocaleString('en-IN'), category }));
     fetchTransactions();
     fetchHealthScore();
     fetchGoals();
     fetchJarvisAdvice();
   } catch (err) {
     console.error('Submit error:', err);
-    showToast('Network error — please try again', true);
+    showToast(t('toast.networkError'), true);
   }
 }
 
@@ -431,15 +432,15 @@ function timeAgo(dateStr) {
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
 
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return t('time.justNow');
+  if (diffMin < 60) return t('time.minutesAgo', { m: diffMin });
 
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) return t('time.hoursAgo', { h: diffHr });
 
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay === 1) return t('time.yesterday');
+  if (diffDay < 7) return t('time.daysAgo', { d: diffDay });
 
   return then.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
@@ -462,7 +463,7 @@ function renderTxnRow(txn, i, clickable = true) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
         </svg>
-        <span>Remove</span>
+        <span>${t('action.remove')}</span>
       </div>
       <div class="txn-row${clickClass}" id="txn-${txn.id}" style="animation-delay: ${i * 0.04}s" ${clickHandler}>
         <div class="txn-row__icon txn-row__icon--${txn.category}">${emoji}</div>
@@ -476,7 +477,7 @@ function renderTxnRow(txn, i, clickable = true) {
         <div class="txn-row__amount ${amountClass}">
           ${sign}₹${txn.amount.toLocaleString('en-IN')}
         </div>
-        <button class="txn-row__delete" onclick="event.stopPropagation(); softDeleteTransaction(${txn.id})" aria-label="Remove transaction" title="Galat entry? Hatao">
+        <button class="txn-row__delete" onclick="event.stopPropagation(); softDeleteTransaction(${txn.id})" aria-label="${escapeAttr(t('action.removeEntry'))}" title="${escapeAttr(t('action.removeEntry'))}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
           </svg>
@@ -514,14 +515,14 @@ async function fetchTransactions() {
 viewAllBtn.addEventListener('click', async () => {
   viewAllOverlay.style.display = 'block';
   document.body.style.overflow = 'hidden';
-  viewAllList.innerHTML = '<div style="text-align:center; padding:40px; color: rgba(240,240,245,0.3);">Loading...</div>';
+  viewAllList.innerHTML = `<div style="text-align:center; padding:40px; color: rgba(240,240,245,0.3);">${t('common.loading')}</div>`;
 
   try {
     const res = await fetch(`${API_BASE}/transactions/all`);
     const data = await res.json();
 
     if (!data.transactions || data.transactions.length === 0) {
-      viewAllList.innerHTML = '<div style="text-align:center; padding:40px; color: rgba(240,240,245,0.3);">No transactions yet</div>';
+      viewAllList.innerHTML = `<div style="text-align:center; padding:40px; color: rgba(240,240,245,0.3);">${t('transactions.empty')}</div>`;
       viewAllCount.textContent = '0';
       return;
     }
@@ -530,7 +531,7 @@ viewAllBtn.addEventListener('click', async () => {
     viewAllList.innerHTML = data.transactions.map((txn, i) => renderTxnRow(txn, i)).join('');
   } catch (err) {
     console.error('View All error:', err);
-    viewAllList.innerHTML = '<div style="text-align:center; padding:40px; color: #f87171;">Error loading transactions</div>';
+    viewAllList.innerHTML = `<div style="text-align:center; padding:40px; color: #f87171;">${t('common.errorLoading')}</div>`;
   }
 });
 
@@ -573,7 +574,7 @@ editForm.addEventListener('submit', async (e) => {
   const type = editType.value;
 
   if (!amount || amount <= 0) {
-    showToast('Amount should be greater than 0', true);
+    showToast(t('toast.amountMustBePositive'), true);
     return;
   }
 
@@ -587,12 +588,12 @@ editForm.addEventListener('submit', async (e) => {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      showToast(data.error || 'Update failed', true);
+      showToast(data.error || t('toast.updateFailed'), true);
       return;
     }
 
     editBackdrop.style.display = 'none';
-    showToast('Transaction updated ✓');
+    showToast(t('toast.transactionUpdated'));
     fetchTransactions();
     fetchHealthScore();
     fetchGoals();
@@ -604,7 +605,7 @@ editForm.addEventListener('submit', async (e) => {
     }
   } catch (err) {
     console.error('Edit error:', err);
-    showToast('Network error — phir try karo', true);
+    showToast(t('toast.networkError'), true);
   }
 });
 
@@ -627,12 +628,12 @@ async function softDeleteTransaction(id) {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      showToast(data.error || 'Kuch galat ho gaya', true);
+      showToast(data.error || t('toast.somethingWrong'), true);
       if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
       return;
     }
 
-    showToast('Entry hata di ✓');
+    showToast(t('toast.transactionDeleted'));
     setTimeout(() => {
       fetchTransactions();
       fetchHealthScore();
@@ -645,7 +646,7 @@ async function softDeleteTransaction(id) {
     }, 300);
   } catch (err) {
     console.error('Soft delete error:', err);
-    showToast('Network error — phir try karo', true);
+    showToast(t('toast.networkError'), true);
     if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
   }
 }
@@ -712,13 +713,13 @@ async function fetchHealthScore() {
     if (healthTrend && lastScore !== null) {
       const diff = score - lastScore;
       if (diff > 0) {
-        healthTrend.textContent = `↑ +${diff} from last update`;
+        healthTrend.textContent = t('insights.trendUp', { diff });
         healthTrend.className = 'health-card__trend health-card__trend--up';
       } else if (diff < 0) {
-        healthTrend.textContent = `↓ ${diff} from last update`;
+        healthTrend.textContent = t('insights.trendDown', { diff });
         healthTrend.className = 'health-card__trend health-card__trend--down';
       } else {
-        healthTrend.textContent = '→ Stable';
+        healthTrend.textContent = t('insights.trendStable');
         healthTrend.className = 'health-card__trend health-card__trend--same';
       }
     }
@@ -785,12 +786,12 @@ async function fetchInsightsOverview() {
     const data = await res.json();
 
     if (!data.success) {
-      showToast('Insights load failed', true);
+      showToast(t('toast.insightsLoadFailed'), true);
       return;
     }
 
     // 1. Month display
-    insightsMonth.textContent = data.month || 'Current Month';
+    insightsMonth.textContent = data.month || t('insights.currentMonth');
 
     // 2. Summary grid card values
     insightIncome.textContent = `₹${data.summary.totalIncome.toLocaleString('en-IN')}`;
@@ -802,7 +803,7 @@ async function fetchInsightsOverview() {
     insightSavings.style.color = savings >= 0 ? '#34d399' : '#f87171';
     
     // Savings Rate Badge
-    insightSavingsRate.textContent = `${data.summary.savingsRate}% savings rate`;
+    insightSavingsRate.textContent = t('insights.savingsRate', { rate: data.summary.savingsRate });
     insightSavingsRate.style.color = data.summary.savingsRate >= 20 ? '#34d399' : (data.summary.savingsRate >= 0 ? '#fbbf24' : '#f87171');
 
     // M.A.D Health Score Card
@@ -824,7 +825,7 @@ async function fetchInsightsOverview() {
       donutChart.style.background = 'conic-gradient(#1e1e2f 0% 100%)';
       categoryLegend.innerHTML = `
         <div style="text-align:center; padding: 12px; color: var(--text-tertiary); font-size: 0.8rem;">
-          No expense transactions recorded yet
+          ${t('insights.noExpenses')}
         </div>
       `;
     } else {
@@ -876,7 +877,7 @@ async function fetchInsightsOverview() {
 
   } catch (err) {
     console.error('Insights fetch error:', err);
-    showToast('Failed to load insights details', true);
+    showToast(t('toast.insightsDetailsFailed'), true);
   }
 }
 
@@ -894,7 +895,7 @@ function renderTrendChart() {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('fill', 'rgba(240, 240, 245, 0.28)');
     text.setAttribute('font-size', '14');
-    text.textContent = 'No transaction trend data available';
+    text.textContent = t('insights.noTrendData');
     trendSvg.appendChild(text);
     trendLabels.innerHTML = '';
     return;
@@ -1025,10 +1026,10 @@ async function fetchLedger() {
     ledgerList.innerHTML = '';
     
     if (!data.balances || data.balances.length === 0) {
-      ledgerList.innerHTML = `<div class="txn-row" style="justify-content: center; color: var(--text-tertiary);">No friends or balances yet. Try typing "1000 dinner split with Rohan".</div>`;
+      ledgerList.innerHTML = `<div class="txn-row" style="justify-content: center; color: var(--text-tertiary);">${t('ledger.empty')}</div>`;
       ledgerTotalBal.textContent = '₹0';
       ledgerTotalBal.style.color = '';
-      ledgerTotalSub.textContent = 'You owe nothing!';
+      ledgerTotalSub.textContent = t('ledger.owesNothing');
       return;
     }
 
@@ -1044,7 +1045,7 @@ async function fetchLedger() {
 
       const isOwedToYou = net > 0;
       const color = isOwedToYou ? '#34d399' : '#ef4444';
-      const text = isOwedToYou ? 'owes you' : 'you owe';
+      const text = isOwedToYou ? t('ledger.owesYou') : t('ledger.youOwe');
       
       const row = document.createElement('div');
       row.className = 'txn-row';
@@ -1058,7 +1059,7 @@ async function fetchLedger() {
         </div>
         <div class="ledger-row__right">
           <span class="txn-row__amount" style="color: ${color};">₹${Math.abs(net).toLocaleString('en-IN')}</span>
-          <button class="ledger-row__settle-btn" onclick="settleDebt(${b.friendId}, '${escapeAttr(b.name)}', ${Math.abs(net)})">Settle Up</button>
+          <button class="ledger-row__settle-btn" onclick="settleDebt(${b.friendId}, '${escapeAttr(b.name)}', ${Math.abs(net)})">${t('ledger.settleUp')}</button>
         </div>
       `;
       ledgerList.appendChild(row);
@@ -1068,9 +1069,9 @@ async function fetchLedger() {
     ledgerTotalBal.textContent = `${netTotal > 0 ? '+' : ''}₹${netTotal.toLocaleString('en-IN')}`;
     ledgerTotalBal.style.color = netTotal > 0 ? '#34d399' : (netTotal < 0 ? '#ef4444' : '');
     
-    if (netTotal > 0) ledgerTotalSub.textContent = `Overall, you are owed ₹${totalOwedToYou.toLocaleString('en-IN')}! 🤑`;
-    else if (netTotal < 0) ledgerTotalSub.textContent = `Overall, you are in debt by ₹${totalYouOwe.toLocaleString('en-IN')}! 🚨`;
-    else ledgerTotalSub.textContent = 'Books are perfectly balanced. ⚖️';
+    if (netTotal > 0) ledgerTotalSub.textContent = t('ledger.owedToYou', { amount: totalOwedToYou.toLocaleString('en-IN') });
+    else if (netTotal < 0) ledgerTotalSub.textContent = t('ledger.inDebt', { amount: totalYouOwe.toLocaleString('en-IN') });
+    else ledgerTotalSub.textContent = t('ledger.balanced');
 
   } catch (err) {
     console.error('Ledger fetch error:', err);
@@ -1078,7 +1079,7 @@ async function fetchLedger() {
 }
 
 async function settleDebt(friendId, name, amount) {
-  if (!confirm(`Mark ₹${amount} as settled with ${name}? This will log an income transaction.`)) return;
+  if (!confirm(t('ledger.settleConfirm', { amount, name }))) return;
 
   try {
     const res = await fetch(`${API_BASE}/ledger/settle/${friendId}`, {
@@ -1088,16 +1089,16 @@ async function settleDebt(friendId, name, amount) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`Settled up with ${name}!`);
+      showToast(t('toast.settledUp', { name }));
       fetchLedger();
       fetchTransactions();
       fetchHealthScore();
     } else {
-      showToast('Failed to settle debt', true);
+      showToast(t('toast.settleFailed'), true);
     }
   } catch (err) {
     console.error('Settle error:', err);
-    showToast('Failed to settle debt', true);
+    showToast(t('toast.settleFailed'), true);
   }
 }
 
@@ -1211,7 +1212,7 @@ function renderSplitRows() {
   youRow.className = 'split-row';
   const youLabel = document.createElement('span');
   youLabel.className = 'split-row__name';
-  youLabel.textContent = 'You';
+  youLabel.textContent = t('split.you');
   const youInput = document.createElement('input');
   youInput.className = 'split-row__input';
   youInput.type = 'text';
@@ -1244,14 +1245,14 @@ function computeSplitBreakdown() {
   } else if (activeSplitMethod === 'exact') {
     friendAmounts = friendInputs.map(input => ({ name: input.dataset.friendName, amount: parseFloat(input.value) }));
     if (friendAmounts.some(f => !Number.isFinite(f.amount) || f.amount < 0)) {
-      error = 'Enter a valid ₹ amount for each friend';
+      error = t('split.errorAmount');
     }
   } else if (activeSplitMethod === 'percentage') {
     const pcts = friendInputs.map(input => ({ name: input.dataset.friendName, pct: parseFloat(input.value) }));
     if (pcts.some(p => !Number.isFinite(p.pct) || p.pct < 0)) {
-      error = 'Enter a valid percentage for each friend';
+      error = t('split.errorPercentage');
     } else if (pcts.reduce((sum, p) => sum + p.pct, 0) > 100.01) {
-      error = 'Percentages add up to more than 100%';
+      error = t('split.errorPercentageOver100');
     } else {
       friendAmounts = pcts.map(p => ({ name: p.name, amount: Math.round((total * p.pct / 100) * 100) / 100 }));
     }
@@ -1259,7 +1260,7 @@ function computeSplitBreakdown() {
     const yourWeight = 1; // you always hold one share
     const weights = friendInputs.map(input => ({ name: input.dataset.friendName, weight: parseFloat(input.value) }));
     if (weights.some(w => !Number.isFinite(w.weight) || w.weight <= 0)) {
-      error = 'Enter a valid share weight (greater than 0) for each friend';
+      error = t('split.errorShareWeight');
     } else {
       const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0) + yourWeight;
       friendAmounts = weights.map(w => ({ name: w.name, amount: Math.round((total * w.weight / totalWeight) * 100) / 100 }));
@@ -1270,8 +1271,8 @@ function computeSplitBreakdown() {
   const yourShare = Math.round((total - friendTotal) * 100) / 100;
 
   if (!error) {
-    if (friendTotal <= 0) error = 'At least one friend needs a positive share';
-    else if (friendTotal > total + 0.01) error = 'Split amounts add up to more than the total';
+    if (friendTotal <= 0) error = t('split.errorPositiveShare');
+    else if (friendTotal > total + 0.01) error = t('split.errorTotalExceeded');
   }
 
   return { total, friendAmounts, friendTotal, yourShare, error };
@@ -1295,7 +1296,7 @@ function updateSplitSummary() {
   }
 
   splitSummary.classList.remove('split-summary--invalid');
-  const parts = [`You pay ₹${breakdown.yourShare.toLocaleString('en-IN')}`]
+  const parts = [t('split.youPay', { amount: breakdown.yourShare.toLocaleString('en-IN') })]
     .concat(breakdown.friendAmounts.map(f => `${f.name} ₹${f.amount.toLocaleString('en-IN')}`));
   splitSummary.textContent = parts.join(' · ');
   splitSubmitBtn.disabled = false;
@@ -1319,7 +1320,7 @@ function resetSplitPicker() {
 function openSplitPicker() {
   const parsed = parseInputLocally(mainInput.value);
   if (!parsed || parsed.amount == null) {
-    showToast('Add an amount first, then split it', true);
+    showToast(t('toast.addAmountFirst'), true);
     return;
   }
 
@@ -1339,7 +1340,7 @@ async function submitSplit() {
 
   const input = mainInput.value.trim();
   if (!input) {
-    showToast('Type the expense first', true);
+    showToast(t('toast.typeExpenseFirst'), true);
     return;
   }
 
@@ -1355,7 +1356,7 @@ async function submitSplit() {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      showToast(data.error || 'Split failed', true);
+      showToast(data.error || t('toast.splitFailed'), true);
       splitSubmitBtn.disabled = false;
       return;
     }
@@ -1364,14 +1365,14 @@ async function submitSplit() {
     mainInput.value = '';
     preview.style.display = 'none';
     splitTriggerBtn.style.display = 'none';
-    showToast('Split added! 🤝');
+    showToast(t('toast.splitAdded'));
     fetchTransactions();
     fetchHealthScore();
     fetchLedger();
     fetchFriends();
   } catch (err) {
     console.error('Split submit error:', err);
-    showToast('Network error', true);
+    showToast(t('toast.networkError'), true);
     splitSubmitBtn.disabled = false;
   }
 }
@@ -1439,6 +1440,47 @@ const signupError       = document.getElementById('signup-error');
 const signupSubmit      = document.getElementById('signup-submit');
 const authDivider       = document.getElementById('auth-divider');
 const authGoogleBtn     = document.getElementById('auth-google-btn');
+
+// ─── Language selectors (auth screen + settings) ───
+const authLangSelector     = document.getElementById('auth-lang-selector');
+const settingsLangSelector = document.getElementById('settings-lang-selector');
+
+function refreshLangDependentUI() {
+  const lang = getCurrentLanguage();
+  [authLangSelector, settingsLangSelector].forEach((selector) => {
+    if (!selector) return;
+    selector.querySelectorAll('.lang-selector__btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+  });
+  if (settingsDarkmodeStatus) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    settingsDarkmodeStatus.textContent = isDark ? t('common.on') : t('common.off');
+  }
+}
+
+// Re-render data-driven sections that bake t() strings into their markup
+// (mood badge, health trend, transaction list) so a language switch updates
+// them immediately instead of waiting for the next natural refresh.
+function refreshDynamicLangContent() {
+  if (!document.body.classList.contains('authenticated')) return;
+  fetchHealthScore();
+  fetchTransactions();
+}
+
+function wireLangSelectors() {
+  [authLangSelector, settingsLangSelector].forEach((selector) => {
+    if (!selector) return;
+    selector.querySelectorAll('.lang-selector__btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.lang === getCurrentLanguage()) return;
+        setLanguage(btn.dataset.lang);
+        refreshLangDependentUI();
+        refreshDynamicLangContent();
+      });
+    });
+  });
+}
 
 const profileIcon       = document.getElementById('profile-icon');
 const profileMenu       = document.getElementById('profile-menu');
@@ -1565,13 +1607,13 @@ async function handleGoogleCredential(response) {
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
-      setAuthError(activeError, data.error || 'Google sign-in failed, try again');
+      setAuthError(activeError, data.error || t('auth.googleSignInFailed'));
       return;
     }
     window.location.reload();
   } catch (err) {
     console.error('Google sign-in error:', err);
-    setAuthError(activeError, 'Server error, try again');
+    setAuthError(activeError, t('auth.serverError'));
   }
 }
 
@@ -1634,13 +1676,13 @@ if (loginForm) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setAuthError(loginError, data.error || 'Login failed, try again');
+        setAuthError(loginError, data.error || t('auth.loginFailed'));
         return;
       }
       window.location.reload();
     } catch (err) {
       console.error('Login error:', err);
-      setAuthError(loginError, 'Server error, try again');
+      setAuthError(loginError, t('auth.serverError'));
     } finally {
       loginSubmit.disabled = false;
     }
@@ -1666,13 +1708,13 @@ if (signupForm) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setAuthError(signupError, data.error || 'Signup failed, try again');
+        setAuthError(signupError, data.error || t('auth.signupFailed'));
         return;
       }
       window.location.reload();
     } catch (err) {
       console.error('Signup error:', err);
-      setAuthError(signupError, 'Server error, try again');
+      setAuthError(signupError, t('auth.serverError'));
     } finally {
       signupSubmit.disabled = false;
     }
@@ -1737,13 +1779,13 @@ if (document.fonts?.ready) {
 // ═══════════════════════════════════════════════
 function applyMoodFromScore(score) {
   let mood = 'calm';
-  let badgeText = '🌊 Calm mode — smooth sailing';
+  let badgeText = t('mood.calm');
   if (score < 55) {
     mood = 'alert';
-    badgeText = '🔥 Alert mode — time to act';
+    badgeText = t('mood.alert');
   } else if (score < 80) {
     mood = 'caution';
-    badgeText = '⚠️ Caution mode — keep an eye out';
+    badgeText = t('mood.caution');
   }
   document.documentElement.setAttribute('data-mood', mood);
   localStorage.setItem('mad-mood', mood);
@@ -2045,7 +2087,7 @@ function enablePullToRefresh() {
       indicator.classList.remove('pull-refresh--loading');
       settle();
       refreshing = false;
-      showToast('Refreshed ✓');
+      showToast(t('toast.refreshed'));
     } else {
       settle();
     }
@@ -2056,6 +2098,12 @@ function enablePullToRefresh() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Language: apply the saved preference immediately — before the auth check —
+  // so the login/signup screen renders in the right language from first paint.
+  setLanguage(localStorage.getItem('mad-lang') || 'en', { persist: false });
+  refreshLangDependentUI();
+  wireLangSelectors();
+
   // Theme: apply the saved preference immediately — before the auth check —
   // so the login/signup screen matches it too, not just the app behind it.
   applyTheme(localStorage.getItem('mad-theme') || 'light');
@@ -2076,6 +2124,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   hideAuthOverlay();
   populateProfileMenu(user);
+
+  // Server-side language preference wins for cross-device consistency.
+  if (user.language && user.language !== getCurrentLanguage()) {
+    setLanguage(user.language, { persist: false });
+    refreshLangDependentUI();
+  }
 
   mainInput.focus();
   fetchTransactions();
@@ -2204,11 +2258,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         goalsOverlayAllocation.innerHTML = `
           <div style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: var(--radius-md); padding: 14px; display: flex; flex-direction: column; gap: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">Total Saved (Net Surplus):</span>
+              <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">${t('goal.totalSaved')}</span>
               <span style="font-size: 0.95rem; color: var(--accent-1); font-weight: 700;">₹${surplus.toLocaleString('en-IN')}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">Allocated to Goals:</span>
+              <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">${t('goal.allocatedToGoals')}</span>
               <span style="font-size: 0.95rem; color: var(--accent-cyan); font-weight: 700;">₹${totalAllocated.toLocaleString('en-IN')} / ₹${totalTarget.toLocaleString('en-IN')}</span>
             </div>
             <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.04); border-radius: var(--radius-full); overflow: hidden; margin-top: 4px;">
@@ -2222,11 +2276,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           const required = Math.round(goal.monthlyRequired);
           const remainingMonths = Math.max(1, Math.ceil((goal.targetAmount - goal.currentAmount) / (goal.monthlyRequired || 1)));
           
-          const priorityNames = { 3: '🔥 High', 2: '⚡ Medium', 1: '🌱 Low' };
-          const prioText = priorityNames[goal.priority] || 'Low';
+          const priorityNames = { 3: t('priority.high'), 2: t('priority.medium'), 1: t('priority.low') };
+          const prioText = priorityNames[goal.priority] || t('priority.low');
 
-          const remainingText = pct >= 100 ? 'Completed! 🎉' : `${remainingMonths}m left`;
-          const requiredText = pct >= 100 ? 'Goal Achieved! 🏆' : `Requires ₹${required.toLocaleString('en-IN')}/month`;
+          const remainingText = pct >= 100 ? t('goal.completed') : t('goal.monthsLeft', { m: remainingMonths });
+          const requiredText = pct >= 100 ? t('goal.achieved') : t('goal.requiresPerMonth', { amount: required.toLocaleString('en-IN') });
           const barFillStyle = pct >= 100 ? 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);' : '';
 
           return `
@@ -2247,7 +2301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span>${pct}% (${remainingText})</span>
                 </div>
               </div>
-              <button class="goal-card__delete" onclick="deleteGoal(${goal.id})" aria-label="Remove goal" title="Goal delete karein?">
+              <button class="goal-card__delete" onclick="deleteGoal(${goal.id})" aria-label="${escapeAttr(t('goal.removeAriaLabel'))}" title="${escapeAttr(t('goal.deleteTooltip'))}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                   <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
                 </svg>
@@ -2267,14 +2321,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       goalsSummaryStats.innerHTML = `
         <div class="goals-summary__stat">
           <span class="goals-summary__stat-dot" style="background: var(--accent-1);"></span>
-          <span>${activeCount} Active</span>
+          <span>${t('goal.activeCount', { count: activeCount })}</span>
         </div>
         <div class="goals-summary__stat">
           <span class="goals-summary__stat-dot" style="background: #10b981;"></span>
-          <span>${completedCount} Done</span>
+          <span>${t('goal.doneCount', { count: completedCount })}</span>
         </div>
         <div class="goals-summary__stat" style="margin-left: auto;">
-          <span>₹${totalAllocated.toLocaleString('en-IN')} Allocated</span>
+          <span>${t('goal.allocatedAmount', { amount: totalAllocated.toLocaleString('en-IN') })}</span>
         </div>
       `;
 
@@ -2290,7 +2344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         goalsSummaryCards.innerHTML = highPriorityGoals.map(goal => {
           const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
           const required = Math.round(goal.monthlyRequired);
-          const requiredText = pct >= 100 ? 'Goal Achieved! 🏆' : `Requires ₹${required.toLocaleString('en-IN')}/month`;
+          const requiredText = pct >= 100 ? t('goal.achieved') : t('goal.requiresPerMonth', { amount: required.toLocaleString('en-IN') });
 
           return `
             <div class="goal-mini-card" onclick="openGoalsOverlay()">
@@ -2316,7 +2370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Delete savings goal
   async function deleteGoal(id) {
-    if (!confirm('Bhai! Sach me ye goal delete karna hai?')) return;
+    if (!confirm(t('goal.deleteConfirm'))) return;
 
     const card = document.getElementById(`goal-${id}`);
     if (card) {
@@ -2329,16 +2383,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Goal deletion failed', true);
+        showToast(data.error || t('toast.goalDeleteFailed'), true);
         if (card) { card.style.opacity = '1'; card.style.transform = 'scale(1)'; }
         return;
       }
 
-      showToast('Goal hata diya ✓');
+      showToast(t('toast.goalDeleted'));
       fetchGoals();
     } catch (err) {
       console.error('Delete goal error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
       if (card) { card.style.opacity = '1'; card.style.transform = 'scale(1)'; }
     }
   }
@@ -2396,7 +2450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Render suggestion chips
         feasibilitySuggsList.innerHTML = `
           <button type="button" class="feasibility-suggestion-btn" onclick="applySuggestedDuration(${data.suggestedDuration})">
-            Increase duration to <span>${data.suggestedDuration} months</span> ➔
+            ${t('goal.increaseDuration', { months: data.suggestedDuration })}
           </button>
         `;
         feasibilitySuggs.style.display = 'block';
@@ -2444,7 +2498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
 
     if (activeValidationResult && activeValidationResult.status === 'unrealistic') {
-      showToast('Unrealistic goal blocked. Please adjust parameters.', true);
+      showToast(t('toast.unrealisticGoal'), true);
       return;
     }
 
@@ -2484,16 +2538,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Goal creation failed', true);
+        showToast(data.error || t('toast.goalCreateFailed'), true);
         return;
       }
 
       goalBackdrop.style.display = 'none';
-      showToast(`Goal "${title}" set successfully! 🎯`);
+      showToast(t('toast.goalCreated', { title }));
       fetchGoals();
     } catch (err) {
       console.error('Save goal error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   }
 
@@ -2530,7 +2584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       jarvisAdviceList.innerHTML = advice.map(item => {
         const cardClass = item.type === 'warning' ? 'warning' : 'tip';
-        const label = item.type === 'warning' ? 'Warning 🚨' : 'Jarvis Advice 💡';
+        const label = item.type === 'warning' ? t('jarvis.warningLabel') : t('jarvis.adviceLabel');
         return `
           <div class="jarvis-advice-card ${cardClass}">
             <div class="jarvis-advice-card__category">${label} (${item.category})</div>
@@ -2591,7 +2645,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const escapedCommand = escapeAttr(commandText);
         
         return `
-          <button class="quick-chip" onclick="applyQuickLog('${escapedCommand}')" title="Fill: '${commandText}'">
+          <button class="quick-chip" onclick="applyQuickLog('${escapedCommand}')" title="${escapeAttr(t('quickadd.fillTooltip', { command: commandText }))}">
             <span>${emoji}</span> ${escapeHtml(displayLabel)} <strong style="color:var(--accent-cyan);">₹${log.amount}</strong>
           </button>
         `;
@@ -2623,7 +2677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       billAlertsSection.style.display = 'flex';
       billAlertsList.innerHTML = data.bills.map(bill => {
         const emoji = CATEGORY_EMOJI[bill.category] || '📦';
-        const name = bill.note ? bill.note : `Recurring ${bill.category}`;
+        const name = bill.note ? bill.note : t('automation.recurringPrefix', { category: bill.category });
         const cardClass = bill.isOverdue ? 'bill-alert-card bill-alert-card--overdue' : 'bill-alert-card';
         const statusClass = bill.isOverdue ? 'bill-alert-card__status--overdue' : 'bill-alert-card__status--due';
         
@@ -2642,10 +2696,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             <div class="bill-alert-card__actions">
               <button class="bill-alert-card__btn bill-alert-card__btn--log" onclick="logRecurringBill(${bill.id})">
-                Log It ✓
+                ${t('automation.logIt')}
               </button>
-              <button class="bill-alert-card__btn bill-alert-card__btn--skip" onclick="skipRecurringBill(${bill.id})" title="Skip this cycle">
-                Skip ✖
+              <button class="bill-alert-card__btn bill-alert-card__btn--skip" onclick="skipRecurringBill(${bill.id})" title="${escapeAttr(t('automation.skipTooltip'))}">
+                ${t('automation.skip')}
               </button>
             </div>
           </div>
@@ -2669,12 +2723,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Failed to log bill', true);
+        showToast(data.error || t('toast.logBillFailed'), true);
         if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
         return;
       }
 
-      showToast('Bill expense logged successfully! ✓');
+      showToast(t('toast.billLogged'));
       // Full refresh
       fetchTransactions();
       fetchHealthScore();
@@ -2684,7 +2738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fetchJarvisAdvice();
     } catch (err) {
       console.error('logRecurringBill error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
       if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
     }
   }
@@ -2702,16 +2756,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Failed to skip alert', true);
+        showToast(data.error || t('toast.skipAlertFailed'), true);
         if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
         return;
       }
 
-      showToast('Alert skipped for this cycle');
+      showToast(t('toast.alertSkipped'));
       fetchBillAlerts();
     } catch (err) {
       console.error('skipRecurringBill error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
       if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
     }
   }
@@ -2725,7 +2779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!data.success || !data.bills || data.bills.length === 0) {
         automationList.innerHTML = `
           <div style="text-align:center; padding:20px; color:rgba(240,240,245,0.2); font-size:0.8rem; border:1px dashed var(--border-subtle); border-radius: var(--radius-md);">
-            No active automations yet.
+            ${t('automation.empty')}
           </div>
         `;
         return;
@@ -2733,21 +2787,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       automationList.innerHTML = data.bills.map(bill => {
         const emoji = CATEGORY_EMOJI[bill.category] || '📦';
-        const name = bill.note ? bill.note : `Recurring ${bill.category}`;
-        const freqLabel = bill.frequency.charAt(0).toUpperCase() + bill.frequency.slice(1);
-        
+        const name = bill.note ? bill.note : t('automation.recurringPrefix', { category: bill.category });
+        const freqLabel = t(`frequency.${bill.frequency.toLowerCase()}`);
+
         return `
           <div class="automation-card" id="auto-card-${bill.id}">
             <div class="automation-card__details">
               <div class="automation-card__icon">${emoji}</div>
               <div class="automation-card__info">
                 <div class="automation-card__title">${escapeHtml(name)}</div>
-                <div class="automation-card__meta">${freqLabel} • Next: ${bill.dueDate}</div>
+                <div class="automation-card__meta">${freqLabel} • ${t('automation.nextLabel', { date: bill.dueDate })}</div>
               </div>
             </div>
             <div class="automation-card__right">
               <span class="automation-card__amount">₹${bill.amount.toLocaleString('en-IN')}</span>
-              <button class="automation-card__delete" onclick="deleteAutomation(${bill.id})" title="Delete Recurring template">
+              <button class="automation-card__delete" onclick="deleteAutomation(${bill.id})" title="${escapeAttr(t('automation.deleteTemplate'))}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                   <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
@@ -2763,24 +2817,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Delete recurring bill template
   async function deleteAutomation(id) {
-    if (!confirm('Bhai! Sach me ye recurring billing template band karna hai?')) return;
+    if (!confirm(t('automation.deleteConfirm'))) return;
 
     try {
       const res = await fetch(`${API_BASE}/automation/recurring/${id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Deactivation failed', true);
+        showToast(data.error || t('toast.deactivationFailed'), true);
         return;
       }
 
-      showToast('Recurring template deactivated ✓');
+      showToast(t('toast.recurringDeactivated'));
       fetchAutomations();
       fetchBillAlerts();
       fetchJarvisAdvice(); // update advice if recurring has changed
     } catch (err) {
       console.error('deleteAutomation error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   }
 
@@ -2817,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dueDate = autoDueDate.value;
 
     if (!amount || amount <= 0) {
-      showToast('Invalid amount', true);
+      showToast(t('toast.invalidAmount'), true);
       return;
     }
 
@@ -2830,11 +2884,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Failed to add recurring bill', true);
+        showToast(data.error || t('toast.addRecurringFailed'), true);
         return;
       }
 
-      showToast('Recurring bill added successfully! ⚡');
+      showToast(t('toast.recurringAdded'));
       automationForm.reset();
       autoDueDate.value = new Date().toISOString().split('T')[0];
       fetchAutomations();
@@ -2842,7 +2896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fetchJarvisAdvice(); // pattern suggestion checks
     } catch (err) {
       console.error('Automation submit error:', err);
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   });
 
@@ -2937,7 +2991,7 @@ if (editProfileForm) {
       const data = await res.json();
 
       if (data.success) {
-        showToast('Profile updated successfully! ✓');
+        showToast(t('toast.profileUpdated'));
         // Update topbar visuals
         const label = data.user.displayName || data.user.username;
         const firstLetter = label.charAt(0).toUpperCase();
@@ -2946,10 +3000,10 @@ if (editProfileForm) {
         document.getElementById('profile-menu-email').textContent = data.user.email;
         updateAvatarDisplay(data.user.avatarUrl, label);
       } else {
-        showToast(data.error || 'Update failed', true);
+        showToast(data.error || t('toast.updateFailed'), true);
       }
     } catch (err) {
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   });
 }
@@ -2970,13 +3024,13 @@ if (changePasswordForm) {
       const data = await res.json();
 
       if (data.success) {
-        showToast('Password updated successfully! 🔒');
+        showToast(t('toast.passwordUpdated'));
         changePasswordForm.reset();
       } else {
-        showToast(data.error || 'Password update failed', true);
+        showToast(data.error || t('toast.passwordUpdateFailed'), true);
       }
     } catch (err) {
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   });
 }
@@ -2996,13 +3050,13 @@ if (addFriendForm) {
       const data = await res.json();
 
       if (data.success) {
-        showToast('Friend request sent! 📨');
+        showToast(t('toast.friendRequestSent'));
         addFriendForm.reset();
       } else {
-        showToast(data.error || 'Failed to send request', true);
+        showToast(data.error || t('toast.friendRequestFailed'), true);
       }
     } catch (err) {
-      showToast('Network error', true);
+      showToast(t('toast.networkError'), true);
     }
   });
 }
@@ -3045,7 +3099,7 @@ async function fetchNotificationsAndRequests() {
     let html = '';
 
     if (reqsData.success && reqsData.requests.length > 0) {
-      html += `<div style="font-size: 0.8rem; font-weight: 600; color: var(--accent-1); margin-top: 8px;">Pending Requests</div>`;
+      html += `<div style="font-size: 0.8rem; font-weight: 600; color: var(--accent-1); margin-top: 8px;">${t('notifications.pendingRequests')}</div>`;
       reqsData.requests.forEach(req => {
         html += `
           <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
@@ -3053,14 +3107,14 @@ async function fetchNotificationsAndRequests() {
               <div style="font-size: 0.85rem; font-weight: 500;">${escapeHtml(req.displayName || req.username)}</div>
               <div style="font-size: 0.75rem; color: var(--text-tertiary);">@${req.username}</div>
             </div>
-            <button onclick="acceptFriendRequest(${req.connectionId})" style="background: var(--accent-1); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Accept</button>
+            <button onclick="acceptFriendRequest(${req.connectionId})" style="background: var(--accent-1); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">${t('action.accept')}</button>
           </div>
         `;
       });
     }
 
     if (notifsData.success && notifsData.notifications.length > 0) {
-      html += `<div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-top: 12px;">Notifications</div>`;
+      html += `<div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-top: 12px;">${t('notifications.title')}</div>`;
       notifsData.notifications.forEach(n => {
         html += `
           <div style="font-size: 0.8rem; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
@@ -3072,7 +3126,7 @@ async function fetchNotificationsAndRequests() {
     }
 
     if (!html) {
-      html = `<div style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center; padding: 12px 0;">No new notifications</div>`;
+      html = `<div style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center; padding: 12px 0;">${t('notifications.empty')}</div>`;
     }
 
     notificationsList.innerHTML = html;
@@ -3086,13 +3140,13 @@ window.acceptFriendRequest = async function(connId) {
     const res = await fetch(`${API_BASE}/connections/accept/${connId}`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('Friend request accepted! 🎉');
+      showToast(t('toast.friendRequestAccepted'));
       fetchNotificationsAndRequests();
     } else {
-      showToast(data.error || 'Failed to accept', true);
+      showToast(data.error || t('toast.friendAcceptFailed'), true);
     }
   } catch (err) {
-    showToast('Network error', true);
+    showToast(t('toast.networkError'), true);
   }
 };
 
@@ -3148,15 +3202,15 @@ if (avatarUploadInput) {
           });
           const data = await res.json();
           if (data.success) {
-            showToast('Profile picture updated! 📸');
+            showToast(t('toast.avatarUpdated'));
             updateAvatarDisplay(data.user.avatarUrl, data.user.displayName || data.user.username);
             // Also update the popover
             populateProfileMenu(data.user);
           } else {
-            showToast(data.error || 'Upload failed', true);
+            showToast(data.error || t('toast.uploadFailed'), true);
           }
         } catch (err) {
-          showToast('Network error', true);
+          showToast(t('toast.networkError'), true);
         }
       };
       img.src = event.target.result;
@@ -3301,18 +3355,18 @@ if (editIncomeForm) {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Income updated successfully! ✓');
+        showToast(t('toast.incomeUpdated'));
         const incomeDisplay = document.getElementById('settings-monthly-income');
         if (incomeDisplay) {
           incomeDisplay.textContent = `₹${monthlyIncome.toLocaleString('en-IN')}`;
         }
         editIncomeOverlay.classList.remove('active');
       } else {
-        showToast(data.error || 'Update failed', true);
+        showToast(data.error || t('toast.updateFailed'), true);
       }
     } catch (err) {
       console.error('Income update error', err);
-      showToast('Connection error', true);
+      showToast(t('toast.networkError'), true);
     }
   });
 }
@@ -3355,7 +3409,7 @@ if (settingsReportsBtn) {
 
 if (settingsFutureBtn) {
   settingsFutureBtn.addEventListener('click', () => {
-    showToast('Future Simulator is coming soon! 🚀');
+    showToast(t('toast.comingSoon'));
   });
 }
 
@@ -3364,21 +3418,21 @@ if (settingsDarkmodeToggle) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   if (!isDark) {
     settingsDarkmodeSwitch.classList.remove('active');
-    settingsDarkmodeStatus.textContent = 'Off';
+    settingsDarkmodeStatus.textContent = t('common.off');
   }
-  
+
   settingsDarkmodeToggle.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     applyTheme(newTheme);
     localStorage.setItem('mad_theme', newTheme);
-    
+
     if (newTheme === 'dark') {
       settingsDarkmodeSwitch.classList.add('active');
-      settingsDarkmodeStatus.textContent = 'On';
+      settingsDarkmodeStatus.textContent = t('common.on');
     } else {
       settingsDarkmodeSwitch.classList.remove('active');
-      settingsDarkmodeStatus.textContent = 'Off';
+      settingsDarkmodeStatus.textContent = t('common.off');
     }
   });
 }

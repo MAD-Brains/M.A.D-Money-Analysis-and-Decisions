@@ -16,6 +16,8 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const USERNAME_RE = /^(?=.{3,20}$)[a-zA-Z0-9_]+(?: [a-zA-Z0-9_]+)*$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const SUPPORTED_LANGUAGES = ['en', 'hi', 'hinglish'];
+
 function publicUser(user) {
   return {
     id: user.id,
@@ -23,7 +25,8 @@ function publicUser(user) {
     email: user.email,
     displayName: user.displayName || user.username,
     avatarUrl: user.avatarUrl || null,
-    monthlyIncome: user.monthlyIncome || 0
+    monthlyIncome: user.monthlyIncome || 0,
+    language: SUPPORTED_LANGUAGES.includes(user.language) ? user.language : 'en'
   };
 }
 
@@ -238,19 +241,22 @@ router.put('/me', (req, res) => {
   }
   
   try {
-    const { email, displayName, monthlyIncome } = req.body || {};
-    
+    const { email, displayName, monthlyIncome, language } = req.body || {};
+
     const existingUser = getUserById.get({ id: req.session.userId });
     if (!existingUser) return res.status(401).json({ success: false });
 
     // Fallbacks to existing data if not provided in the payload
     const finalEmail = email !== undefined ? email.trim() : existingUser.email;
-    const finalDisplayName = displayName !== undefined 
+    const finalDisplayName = displayName !== undefined
       ? (typeof displayName === 'string' && displayName.trim() ? displayName.trim() : null)
       : existingUser.displayName;
-    const finalIncome = monthlyIncome !== undefined 
+    const finalIncome = monthlyIncome !== undefined
       ? (typeof monthlyIncome === 'number' ? monthlyIncome : parseFloat(monthlyIncome) || 0)
       : existingUser.monthlyIncome;
+    const finalLanguage = language !== undefined && SUPPORTED_LANGUAGES.includes(language)
+      ? language
+      : (existingUser.language || 'en');
 
     if (typeof finalEmail !== 'string' || !EMAIL_RE.test(finalEmail)) {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
@@ -267,6 +273,7 @@ router.put('/me', (req, res) => {
       displayName: finalDisplayName,
       email: finalEmail,
       monthlyIncome: finalIncome,
+      language: finalLanguage,
       id: req.session.userId
     });
 
