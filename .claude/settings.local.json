@@ -7,7 +7,15 @@
       "Bash(curl -s http://localhost:3000/api/insights/health-score)",
       "Bash(curl -s http://localhost:3000/api/insights/overview)",
       "Bash(curl -s -X POST http://localhost:3000/api/transactions -H \"Content-Type: application/json\" -d \"{\\\\\"input\\\\\":\\\\\"1200 dinner\\\\\",\\\\\"splits\\\\\":[{\\\\\"friendName\\\\\":\\\\\"Rohan\\\\\",\\\\\"amount\\\\\":400},{\\\\\"friendName\\\\\":\\\\\"Priya\\\\\",\\\\\"amount\\\\\":400}]}\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr -i \"300\\\\|400\\\\|500\\\\|800\")",
+      "Bash(tasklist)",
+      "Bash(findstr -i node)",
+      "Bash(findstr :3002)",
+      "Bash(taskkill /PID 26720 /F)",
+      "PowerShell(Stop-Process -Id 26720 -Force)",
+      "Bash(npm run *)"
     ]
   }
 }
