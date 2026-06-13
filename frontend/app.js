@@ -8,18 +8,26 @@
 // In local dev, defaults to '/api' (same origin)
 const API_BASE = window.__MAD_API_BASE__ || '/api';
 
-// ─── 401 interceptor ───
+// ─── 401 interceptor & Cross-Origin Credentials ───
 // If a session expires/clears mid-use, any authenticated API call comes back
 // 401 — re-show the login gate instead of letting ~30 call sites fail silently.
+// Also automatically injects credentials: 'include' to support cross-origin cookies on Render/Vercel.
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async function(input, init) {
-  const response = await nativeFetch(input, init);
   const url = typeof input === 'string' ? input : (input && input.url) || '';
+  
+  if (url.startsWith(`${API_BASE}/`) || url === API_BASE) {
+    init = init || {};
+    init.credentials = 'include';
+  }
+
+  const response = await nativeFetch(input, init);
   if (response.status === 401 && url.startsWith(`${API_BASE}/`) && !url.startsWith(`${API_BASE}/auth/`)) {
     showAuthOverlay();
   }
   return response;
 };
+
 
 let currentTrendData = [];
 let currentTrendView = 'daily'; // 'daily' or 'weekly'
