@@ -6,9 +6,9 @@ const { getAllFriends } = require('../db');
  * GET /api/friends
  * Fetch all friends for the split picker and autocomplete.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const friends = getAllFriends.all({ userId: req.session.userId });
+    const friends = await getAllFriends({ userId: req.session.userId });
     return res.json({ success: true, friends });
   } catch (err) {
     console.error('GET /friends error:', err);

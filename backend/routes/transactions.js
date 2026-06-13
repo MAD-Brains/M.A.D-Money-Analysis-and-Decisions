@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit } = require('../db');
+const { pool, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit } = require('../db');
 const { parseInput } = require('../parser');
 
 /**
@@ -9,7 +9,7 @@ const { parseInput } = require('../parser');
  *
  * Body: { "input": "250 swiggy" }
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { input } = req.body;
 
@@ -59,36 +59,40 @@ router.post('/', (req, res) => {
 
     const userId = req.session.userId;
 
-    const createTransactionWithSplits = db.transaction(() => {
-      const result = insertTransaction.run({
-        userId,
-        amount: finalAmount,
-        type,
-        category,
-        note,
-        date: new Date().toISOString(),
-      });
+    // PostgreSQL transaction using pool client
+    const client = await pool.connect();
+    let transactionId;
+    try {
+      await client.query('BEGIN');
 
-      const transactionId = result.lastInsertRowid;
+      const txnResult = await client.query(
+        `INSERT INTO transactions ("userId", amount, type, category, note, date)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
+        [userId, finalAmount, type, category, note, new Date().toISOString()]
+      );
+      transactionId = txnResult.rows[0].id;
 
       for (const { friendName, splitAmount } of splitsToCreate) {
-        let friend = getFriendByName.get({ name: friendName, userId });
+        let friend = await getFriendByName({ name: friendName, userId });
         if (!friend) {
-          const friendResult = insertFriend.run({ name: friendName, userId });
-          friend = { id: friendResult.lastInsertRowid };
+          friend = await insertFriend({ name: friendName, userId });
         }
 
-        insertSplit.run({
-          transactionId,
-          friendId: friend.id,
-          splitAmount,
-        });
+        await client.query(
+          `INSERT INTO splits ("transactionId", "friendId", "splitAmount")
+           VALUES ($1, $2, $3)`,
+          [transactionId, friend.id, splitAmount]
+        );
       }
 
-      return transactionId;
-    });
-
-    const transactionId = createTransactionWithSplits();
+      await client.query('COMMIT');
+    } catch (txnErr) {
+      await client.query('ROLLBACK');
+      throw txnErr;
+    } finally {
+      client.release();
+    }
 
     return res.json({
       success: true,
@@ -110,9 +114,9 @@ router.post('/', (req, res) => {
  * GET /api/transactions
  * Return the last 5 transactions, sorted by latest
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const transactions = getRecentTransactions.all({ userId: req.session.userId });
+    const transactions = await getRecentTransactions({ userId: req.session.userId });
     return res.json({ transactions });
   } catch (err) {
     console.error('GET /transactions error:', err);
@@ -124,9 +128,9 @@ router.get('/', (req, res) => {
  * GET /api/transactions/all
  * Return ALL transactions (for View All screen)
  */
-router.get('/all', (req, res) => {
+router.get('/all', async (req, res) => {
   try {
-    const transactions = getAllTransactions.all({ userId: req.session.userId });
+    const transactions = await getAllTransactions({ userId: req.session.userId });
     return res.json({ transactions });
   } catch (err) {
     console.error('GET /transactions/all error:', err);
@@ -140,7 +144,7 @@ router.get('/all', (req, res) => {
  *
  * Body: { amount, note, category, type }
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
@@ -153,7 +157,7 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ success: false, error: 'Amount, category and type are required' });
     }
 
-    const result = updateTransaction.run({
+    const result = await updateTransaction({
       id,
       userId: req.session.userId,
       amount: parseFloat(amount),
@@ -180,7 +184,7 @@ router.put('/:id', (req, res) => {
  * PATCH /api/transactions/:id/incorrect
  * Soft-delete: mark a transaction as incorrect (won't show in list, but data stays for insights)
  */
-router.patch('/:id/incorrect', (req, res) => {
+router.patch('/:id/incorrect', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
 
@@ -188,7 +192,7 @@ router.patch('/:id/incorrect', (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid transaction ID' });
     }
 
-    const result = softDeleteTransaction.run({ id, userId: req.session.userId });
+    const result = await softDeleteTransaction({ id, userId: req.session.userId });
 
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Transaction not found' });

@@ -6,9 +6,9 @@ const { getLedgerBalances, settleFriendDebts, insertTransaction } = require('../
  * GET /api/ledger
  * Fetch net balances for all friends.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const balances = getLedgerBalances.all({ userId: req.session.userId });
+    const balances = await getLedgerBalances({ userId: req.session.userId });
     return res.json({ success: true, balances });
   } catch (err) {
     console.error('GET /ledger error:', err);
@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
  * POST /api/ledger/settle/:friendId
  * Settle all outstanding splits with a friend.
  */
-router.post('/settle/:friendId', (req, res) => {
+router.post('/settle/:friendId', async (req, res) => {
   try {
     const { friendId } = req.params;
     const { amount, friendName } = req.body;
@@ -30,10 +30,10 @@ router.post('/settle/:friendId', (req, res) => {
     }
 
     // Mark all splits as settled
-    settleFriendDebts.run({ friendId });
+    await settleFriendDebts({ friendId });
 
     // Insert an income transaction to balance the user's wallet
-    const result = insertTransaction.run({
+    const result = await insertTransaction({
       userId: req.session.userId,
       amount,
       type: 'income',
@@ -42,7 +42,7 @@ router.post('/settle/:friendId', (req, res) => {
       date: new Date().toISOString(),
     });
 
-    return res.json({ success: true, transactionId: result.lastInsertRowid });
+    return res.json({ success: true, transactionId: result.id });
   } catch (err) {
     console.error('POST /ledger/settle error:', err);
     return res.status(500).json({ success: false, error: 'Server error' });

@@ -3,7 +3,10 @@
    + View All + Edit Transaction
    ═══════════════════════════════════════════════ */
 
-const API_BASE = '/api';
+// In production, set window.__MAD_API_BASE__ to your Render backend URL + '/api'
+// e.g. window.__MAD_API_BASE__ = 'https://mad-backend.onrender.com/api'
+// In local dev, defaults to '/api' (same origin)
+const API_BASE = window.__MAD_API_BASE__ || '/api';
 
 // ─── 401 interceptor ───
 // If a session expires/clears mid-use, any authenticated API call comes back

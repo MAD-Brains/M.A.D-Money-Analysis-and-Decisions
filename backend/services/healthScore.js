@@ -26,20 +26,20 @@ const NON_ESSENTIAL_CATEGORIES = ['Food', 'Shopping', 'Smoking', 'Alcohol', 'Oth
 /**
  * Calculate the Money Health Score
  * @param {number} userId
- * @returns {{ score: number, breakdown: object, subtitle: string }}
+ * @returns {Promise<{ score: number, breakdown: object, subtitle: string }>}
  */
-function calculateHealthScore(userId) {
-  const totals = getCurrentMonthTotals.get({ userId });
-  const categories = getCategoryBreakdown.all({ userId });
-  const { activeDays } = getActiveDays.get({ userId });
-  const { count: totalTransactions } = getTransactionCount.get({ userId });
+async function calculateHealthScore(userId) {
+  const totals = await getCurrentMonthTotals({ userId });
+  const categories = await getCategoryBreakdown({ userId });
+  const { activeDays } = await getActiveDays({ userId });
+  const { count: totalTransactions } = await getTransactionCount({ userId });
 
   // Days elapsed in current month (today's date)
   const today = new Date();
   const dayOfMonth = today.getDate();
 
   // ─── No data at all? Return starter score ───
-  if (totalTransactions === 0) {
+  if (totalTransactions === 0 || parseInt(totalTransactions, 10) === 0) {
     return {
       score: 50,
       breakdown: {
@@ -58,7 +58,7 @@ function calculateHealthScore(userId) {
   let financeTotal = 0;
   for (const cat of categories) {
     if (cat.category === 'Finance') {
-      financeTotal += cat.total;
+      financeTotal += parseFloat(cat.total) || 0;
     }
   }
 
@@ -138,9 +138,9 @@ function calculateHealthScore(userId) {
 
     for (const cat of activeExpenseCategories) {
       if (ESSENTIAL_CATEGORIES.includes(cat.category)) {
-        essentialSpend += cat.total;
+        essentialSpend += parseFloat(cat.total) || 0;
       } else {
-        nonEssentialSpend += cat.total;
+        nonEssentialSpend += parseFloat(cat.total) || 0;
       }
     }
 
