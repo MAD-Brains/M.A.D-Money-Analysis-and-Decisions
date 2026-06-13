@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { 
-  db,
   insertRecurringBill, 
   getRecurringBills, 
   updateRecurringBillDueDate, 
   deleteRecurringBill,
-  insertTransaction
+  insertTransaction,
+  getRecurringBillById,
+  getQuickLogs,
 } = require('../db');
 
 // Helper to advance the due date to the next future occurrence
@@ -45,9 +46,9 @@ function getNextDueDate(currentDueDateStr, frequency) {
  * GET /api/automation/recurring
  * Fetch all active recurring bills/subscriptions
  */
-router.get('/recurring', (req, res) => {
+router.get('/recurring', async (req, res) => {
   try {
-    const bills = getRecurringBills.all({ userId: req.session.userId });
+    const bills = await getRecurringBills({ userId: req.session.userId });
     return res.json({ success: true, bills });
   } catch (err) {
     console.error('GET /automation/recurring error:', err);
@@ -59,7 +60,7 @@ router.get('/recurring', (req, res) => {
  * POST /api/automation/recurring
  * Add a new recurring bill template
  */
-router.post('/recurring', (req, res) => {
+router.post('/recurring', async (req, res) => {
   try {
     const { amount, category, note, frequency, dueDate } = req.body;
 
@@ -81,7 +82,7 @@ router.post('/recurring', (req, res) => {
       return res.status(400).json({ success: false, error: 'Due date must be in YYYY-MM-DD format' });
     }
 
-    const result = insertRecurringBill.run({
+    const result = await insertRecurringBill({
       userId: req.session.userId,
       amount: amt,
       category,
@@ -93,7 +94,7 @@ router.post('/recurring', (req, res) => {
     return res.json({
       success: true,
       bill: {
-        id: result.lastInsertRowid,
+        id: result.id,
         amount: amt,
         category,
         note,
@@ -111,14 +112,14 @@ router.post('/recurring', (req, res) => {
  * DELETE /api/automation/recurring/:id
  * Soft delete/deactivate a recurring bill template
  */
-router.delete('/recurring/:id', (req, res) => {
+router.delete('/recurring/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
       return res.status(400).json({ success: false, error: 'Invalid ID' });
     }
 
-    const result = deleteRecurringBill.run({ id, userId: req.session.userId });
+    const result = await deleteRecurringBill({ id, userId: req.session.userId });
 
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Recurring bill not found' });
@@ -135,9 +136,9 @@ router.delete('/recurring/:id', (req, res) => {
  * GET /api/automation/due-bills
  * Identify active recurring bills due within next 3 days, or overdue
  */
-router.get('/due-bills', (req, res) => {
+router.get('/due-bills', async (req, res) => {
   try {
-    const bills = getRecurringBills.all({ userId: req.session.userId });
+    const bills = await getRecurringBills({ userId: req.session.userId });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -189,7 +190,7 @@ router.get('/due-bills', (req, res) => {
  * POST /api/automation/log-pending/:id
  * Log a pending bill as a transaction, advance its due date
  */
-router.post('/log-pending/:id', (req, res) => {
+router.post('/log-pending/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
@@ -197,14 +198,14 @@ router.post('/log-pending/:id', (req, res) => {
     }
 
     // Fetch the bill
-    const bill = db.prepare('SELECT * FROM recurring_bills WHERE id = ? AND userId = ? AND isActive = 1').get(id, req.session.userId);
+    const bill = await getRecurringBillById(id, req.session.userId);
     if (!bill) {
       return res.status(404).json({ success: false, error: 'Recurring bill not found' });
     }
 
     // 1. Insert into transactions table
     const displayNote = bill.note ? bill.note : `Recurring: ${bill.category}`;
-    insertTransaction.run({
+    await insertTransaction({
       userId: req.session.userId,
       amount: bill.amount,
       type: 'expense',
@@ -215,7 +216,7 @@ router.post('/log-pending/:id', (req, res) => {
 
     // 2. Advance due date
     const nextDueDate = getNextDueDate(bill.dueDate, bill.frequency);
-    updateRecurringBillDueDate.run({
+    await updateRecurringBillDueDate({
       id: bill.id,
       userId: req.session.userId,
       dueDate: nextDueDate,
@@ -237,7 +238,7 @@ router.post('/log-pending/:id', (req, res) => {
  * POST /api/automation/skip-pending/:id
  * Skip logging the transaction, simply advance the bill's due date
  */
-router.post('/skip-pending/:id', (req, res) => {
+router.post('/skip-pending/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
@@ -245,14 +246,14 @@ router.post('/skip-pending/:id', (req, res) => {
     }
 
     // Fetch the bill
-    const bill = db.prepare('SELECT * FROM recurring_bills WHERE id = ? AND userId = ? AND isActive = 1').get(id, req.session.userId);
+    const bill = await getRecurringBillById(id, req.session.userId);
     if (!bill) {
       return res.status(404).json({ success: false, error: 'Recurring bill not found' });
     }
 
     // Advance due date without logging transaction
     const nextDueDate = getNextDueDate(bill.dueDate, bill.frequency);
-    updateRecurringBillDueDate.run({
+    await updateRecurringBillDueDate({
       id: bill.id,
       userId: req.session.userId,
       dueDate: nextDueDate,
@@ -274,24 +275,9 @@ router.post('/skip-pending/:id', (req, res) => {
  * GET /api/automation/quick-logs
  * Identifies the top 4 most frequent expenses from the last 30 days
  */
-router.get('/quick-logs', (req, res) => {
+router.get('/quick-logs', async (req, res) => {
   try {
-    const rows = db.prepare(`
-      SELECT
-        amount,
-        category,
-        note,
-        COUNT(*) as frequency
-      FROM transactions
-      WHERE isIncorrect = 0
-        AND userId = @userId
-        AND type = 'expense'
-        AND createdAt >= datetime('now', 'localtime', '-30 days')
-      GROUP BY amount, category, COALESCE(note, '')
-      ORDER BY frequency DESC
-      LIMIT 4
-    `).all({ userId: req.session.userId });
-
+    const rows = await getQuickLogs({ userId: req.session.userId });
     return res.json({ success: true, quickLogs: rows });
   } catch (err) {
     console.error('GET /automation/quick-logs error:', err);

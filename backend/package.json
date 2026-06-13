@@ -8,14 +8,17 @@
     "dev": "node --watch server.js",
     "test": "node --test ../test-cases"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "better-sqlite3": "^11.7.0",
-    "better-sqlite3-session-store": "^0.1.0",
+    "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-session": "^1.19.0",
-    "google-auth-library": "^9.14.0"
+    "google-auth-library": "^9.14.0",
+    "pg": "^8.13.0"
   }
 }

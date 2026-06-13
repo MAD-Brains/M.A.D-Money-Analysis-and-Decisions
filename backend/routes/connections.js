@@ -12,7 +12,7 @@ const {
   insertFriend
 } = require('../db');
 
-router.post('/request', (req, res) => {
+router.post('/request', async (req, res) => {
   try {
     const { identifier } = req.body || {};
     if (typeof identifier !== 'string' || !identifier.trim()) {
@@ -23,8 +23,8 @@ router.post('/request', (req, res) => {
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
     
     const targetUser = isEmail 
-      ? getUserByEmail.get({ email: trimmed }) 
-      : getUserByUsername.get({ username: trimmed });
+      ? await getUserByEmail({ email: trimmed }) 
+      : await getUserByUsername({ username: trimmed });
 
     if (!targetUser) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -33,7 +33,7 @@ router.post('/request', (req, res) => {
       return res.status(400).json({ success: false, error: 'You cannot add yourself' });
     }
 
-    const existingConn = getConnection.get({ 
+    const existingConn = await getConnection({ 
       userId1: req.session.userId, 
       userId2: targetUser.id 
     });
@@ -46,17 +46,17 @@ router.post('/request', (req, res) => {
     }
 
     // Create pending connection
-    insertConnection.run({
+    await insertConnection({
       requesterId: req.session.userId,
       addresseeId: targetUser.id
     });
 
     // Get current user info for notification
-    const me = getUserById.get({ id: req.session.userId });
+    const me = await getUserById({ id: req.session.userId });
     const displayName = me.displayName || me.username;
 
     // Send notification
-    insertNotification.run({
+    await insertNotification({
       userId: targetUser.id,
       type: 'friend_request',
       message: `${displayName} sent you a friend request.`,
@@ -73,9 +73,9 @@ router.post('/request', (req, res) => {
   }
 });
 
-router.get('/pending', (req, res) => {
+router.get('/pending', async (req, res) => {
   try {
-    const requests = getPendingRequests.all({ userId: req.session.userId });
+    const requests = await getPendingRequests({ userId: req.session.userId });
     return res.json({ success: true, requests });
   } catch (err) {
     console.error('GET /connections/pending error:', err);
@@ -83,10 +83,10 @@ router.get('/pending', (req, res) => {
   }
 });
 
-router.post('/accept/:id', (req, res) => {
+router.post('/accept/:id', async (req, res) => {
   try {
     const connId = parseInt(req.params.id, 10);
-    const result = updateConnectionStatus.run({ 
+    const result = await updateConnectionStatus({ 
       status: 'accepted', 
       id: connId, 
       addresseeId: req.session.userId 
@@ -95,11 +95,6 @@ router.post('/accept/:id', (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Request not found or unauthorized' });
     }
-
-    // Also populate the old `friends` table for backward compatibility in Phase B
-    // Wait, let's keep it simple. The user might want the old splits to work.
-    // I won't do `insertFriend` yet, because the frontend split picker relies on `GET /friends`.
-    // Actually, Phase C will rebuild the Split picker. For now, this is just linking.
 
     return res.json({ success: true });
   } catch (err) {

@@ -150,3 +150,6 @@ vite.config.ts.timestamp-*
 
 # Uploads (ALL files inside folder)
 backend/uploads/
+
+# Build tools (no longer needed — SQLite native binary removed)
+backend/vs_buildtools.exe

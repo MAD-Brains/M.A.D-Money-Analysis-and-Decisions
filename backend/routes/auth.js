@@ -8,6 +8,8 @@ const router = express.Router();
 const {
   insertUser, getUserByEmail, getUserByUsername, getUserById,
   getUserByGoogleId, linkGoogleId, insertGoogleUser,
+  updateUserProfile, updateUserPassword, updateUserAvatar,
+  getUserPasswordHash,
 } = require('../db');
 
 const SALT_ROUNDS = 10;
@@ -30,7 +32,7 @@ function publicUser(user) {
   };
 }
 
-function generateUniqueUsername(seed) {
+async function generateUniqueUsername(seed) {
   let base = String(seed || 'user')
     .split('@')[0]
     .replace(/[^a-zA-Z0-9_ ]/g, '')
@@ -41,7 +43,7 @@ function generateUniqueUsername(seed) {
 
   let candidate = base;
   let suffix = 1;
-  while (getUserByUsername.get({ username: candidate })) {
+  while (await getUserByUsername({ username: candidate })) {
     const s = String(suffix);
     candidate = base.slice(0, 20 - s.length) + s;
     suffix += 1;
@@ -61,7 +63,7 @@ router.get('/config', (req, res) => {
  * POST /api/auth/signup
  * Create a new account, hash the password, and start a session.
  */
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
   try {
     const { username, email, password, displayName } = req.body || {};
 
@@ -78,22 +80,22 @@ router.post('/signup', (req, res) => {
     const trimmedUsername = username.trim();
     const trimmedEmail = email.trim();
 
-    if (getUserByUsername.get({ username: trimmedUsername })) {
+    if (await getUserByUsername({ username: trimmedUsername })) {
       return res.status(409).json({ success: false, error: 'That username is already taken' });
     }
-    if (getUserByEmail.get({ email: trimmedEmail })) {
+    if (await getUserByEmail({ email: trimmedEmail })) {
       return res.status(409).json({ success: false, error: 'An account with that email already exists' });
     }
 
     const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
-    const result = insertUser.run({
+    const result = await insertUser({
       username: trimmedUsername,
       email: trimmedEmail,
       passwordHash,
       displayName: typeof displayName === 'string' && displayName.trim() ? displayName.trim() : null,
     });
 
-    const user = getUserById.get({ id: result.lastInsertRowid });
+    const user = await getUserById({ id: result.id });
     req.session.userId = user.id;
     return res.status(201).json({ success: true, user: publicUser(user) });
   } catch (err) {
@@ -106,7 +108,7 @@ router.post('/signup', (req, res) => {
  * POST /api/auth/login
  * Verify credentials (by username or email) and start a session.
  */
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { identifier, password } = req.body || {};
 
@@ -116,8 +118,8 @@ router.post('/login', (req, res) => {
 
     const trimmed = identifier.trim();
     const user = EMAIL_RE.test(trimmed)
-      ? getUserByEmail.get({ email: trimmed })
-      : getUserByUsername.get({ username: trimmed });
+      ? await getUserByEmail({ email: trimmed })
+      : await getUserByUsername({ username: trimmed });
 
     if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
       return res.status(401).json({ success: false, error: 'Incorrect username/email or password' });
@@ -166,13 +168,13 @@ router.post('/google', async (req, res) => {
     const name = typeof payload.name === 'string' ? payload.name.trim() : '';
     const picture = typeof payload.picture === 'string' ? payload.picture : null;
 
-    let user = getUserByGoogleId.get({ googleId });
+    let user = await getUserByGoogleId({ googleId });
 
     if (!user && emailVerified) {
-      const existingByEmail = getUserByEmail.get({ email });
+      const existingByEmail = await getUserByEmail({ email });
       if (existingByEmail) {
-        if (!existingByEmail.googleId) linkGoogleId.run({ googleId, id: existingByEmail.id });
-        user = getUserById.get({ id: existingByEmail.id });
+        if (!existingByEmail.googleId) await linkGoogleId({ googleId, id: existingByEmail.id });
+        user = await getUserById({ id: existingByEmail.id });
       }
     }
 
@@ -180,9 +182,9 @@ router.post('/google', async (req, res) => {
       if (!emailVerified) {
         return res.status(401).json({ success: false, error: 'Google account email is not verified' });
       }
-      const username = generateUniqueUsername(email);
+      const username = await generateUniqueUsername(email);
       const randomPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
-      const result = insertGoogleUser.run({
+      const result = await insertGoogleUser({
         username,
         email,
         passwordHash: randomPasswordHash,
@@ -190,7 +192,7 @@ router.post('/google', async (req, res) => {
         avatarUrl: picture,
         googleId,
       });
-      user = getUserById.get({ id: result.lastInsertRowid });
+      user = await getUserById({ id: result.id });
     }
 
     req.session.userId = user.id;
@@ -220,11 +222,11 @@ router.post('/logout', (req, res) => {
  * GET /api/auth/me
  * Return the current session's user, or 401 if not logged in.
  */
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   if (!req.session?.userId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
   }
-  const user = getUserById.get({ id: req.session.userId });
+  const user = await getUserById({ id: req.session.userId });
   if (!user) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
   }
@@ -235,7 +237,7 @@ router.get('/me', (req, res) => {
  * PUT /api/auth/me
  * Update the current user's profile (displayName and email).
  */
-router.put('/me', (req, res) => {
+router.put('/me', async (req, res) => {
   if (!req.session?.userId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
   }
@@ -243,7 +245,7 @@ router.put('/me', (req, res) => {
   try {
     const { email, displayName, monthlyIncome, language } = req.body || {};
 
-    const existingUser = getUserById.get({ id: req.session.userId });
+    const existingUser = await getUserById({ id: req.session.userId });
     if (!existingUser) return res.status(401).json({ success: false });
 
     // Fallbacks to existing data if not provided in the payload
@@ -263,13 +265,12 @@ router.put('/me', (req, res) => {
     }
 
     // Check if new email belongs to another user
-    const userWithEmail = getUserByEmail.get({ email: finalEmail });
+    const userWithEmail = await getUserByEmail({ email: finalEmail });
     if (userWithEmail && userWithEmail.id !== req.session.userId) {
       return res.status(409).json({ success: false, error: 'An account with that email already exists' });
     }
 
-    const { updateUserProfile } = require('../db');
-    updateUserProfile.run({
+    await updateUserProfile({
       displayName: finalDisplayName,
       email: finalEmail,
       monthlyIncome: finalIncome,
@@ -277,7 +278,7 @@ router.put('/me', (req, res) => {
       id: req.session.userId
     });
 
-    const user = getUserById.get({ id: req.session.userId });
+    const user = await getUserById({ id: req.session.userId });
     return res.json({ success: true, user: publicUser(user) });
   } catch (err) {
     console.error('PUT /auth/me error:', err);
@@ -289,7 +290,7 @@ router.put('/me', (req, res) => {
  * PUT /api/auth/password
  * Update the user's password.
  */
-router.put('/password', (req, res) => {
+router.put('/password', async (req, res) => {
   if (!req.session?.userId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
   }
@@ -301,15 +302,14 @@ router.put('/password', (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid current password and new password (min 6 chars) are required' });
     }
 
-    const { getUserPasswordHash, updateUserPassword } = require('../db');
-    const userRow = getUserPasswordHash.get({ id: req.session.userId });
+    const userRow = await getUserPasswordHash({ id: req.session.userId });
 
     if (!userRow || !bcrypt.compareSync(currentPassword, userRow.passwordHash)) {
       return res.status(401).json({ success: false, error: 'Incorrect current password' });
     }
 
     const newPasswordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
-    updateUserPassword.run({
+    await updateUserPassword({
       passwordHash: newPasswordHash,
       id: req.session.userId
     });
@@ -325,7 +325,7 @@ router.put('/password', (req, res) => {
  * POST /api/auth/avatar
  * Upload a profile picture as a base64 string
  */
-router.post('/avatar', (req, res) => {
+router.post('/avatar', async (req, res) => {
   if (!req.session?.userId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
   }
@@ -354,10 +354,9 @@ router.post('/avatar', (req, res) => {
     const avatarUrl = `/uploads/${filename}`;
 
     // Update DB
-    const { updateUserAvatar } = require('../db');
-    updateUserAvatar.run({ avatarUrl, id: req.session.userId });
+    await updateUserAvatar({ avatarUrl, id: req.session.userId });
 
-    const user = getUserById.get({ id: req.session.userId });
+    const user = await getUserById({ id: req.session.userId });
     return res.json({ success: true, user: publicUser(user) });
   } catch (err) {
     console.error('POST /auth/avatar error:', err);

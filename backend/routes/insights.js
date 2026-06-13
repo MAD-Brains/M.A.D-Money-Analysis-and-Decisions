@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { calculateHealthScore } = require('../services/healthScore');
-const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, db } = require('../db');
+const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, getActiveRecurringBills, getFrequentTransactions } = require('../db');
 
 /**
  * GET /api/insights/health-score
  * Returns the dynamic Money Health Score with breakdown
  */
-router.get('/health-score', (req, res) => {
+router.get('/health-score', async (req, res) => {
   try {
-    const result = calculateHealthScore(req.session.userId);
+    const result = await calculateHealthScore(req.session.userId);
     return res.json(result);
   } catch (err) {
     console.error('GET /insights/health-score error:', err);
@@ -21,13 +21,13 @@ router.get('/health-score', (req, res) => {
  * GET /api/insights/overview
  * Returns full insights data: month summary, category breakdown, daily trend
  */
-router.get('/overview', (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     const userId = req.session.userId;
-    const summary = getMonthSummary.get({ userId });
-    const categories = getAllCategoryBreakdown.all({ userId });
-    const dailyTrend = getDailySpending.all({ userId });
-    const healthScore = calculateHealthScore(userId);
+    const summary = await getMonthSummary({ userId });
+    const categories = await getAllCategoryBreakdown({ userId });
+    const dailyTrend = await getDailySpending({ userId });
+    const healthScore = await calculateHealthScore(userId);
 
     // Find finance category total to exclude from savings rate calculation
     const financeTotal = categories
@@ -93,19 +93,8 @@ router.get('/overview', (req, res) => {
 
     // Dynamic recurring pattern detection suggestions
     try {
-      const activeBills = db.prepare("SELECT amount, category, COALESCE(note, '') AS note FROM recurring_bills WHERE isActive = 1 AND userId = @userId").all({ userId });
-      const frequentTxns = db.prepare(`
-        SELECT amount, category, note, COUNT(*) as frequency
-        FROM transactions
-        WHERE isIncorrect = 0
-          AND userId = @userId
-          AND type = 'expense'
-          AND createdAt >= datetime('now', 'localtime', '-30 days')
-        GROUP BY amount, category, COALESCE(note, '')
-        HAVING frequency >= 3
-        ORDER BY frequency DESC
-        LIMIT 2
-      `).all({ userId });
+      const activeBills = await getActiveRecurringBills({ userId });
+      const frequentTxns = await getFrequentTransactions({ userId });
 
       for (const txn of frequentTxns) {
         // Check if this is already configured as an active recurring bill
