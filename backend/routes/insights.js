@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { calculateHealthScore } = require('../services/healthScore');
-const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, getActiveRecurringBills, getFrequentTransactions } = require('../db');
+const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, getActiveRecurringBills, getFrequentTransactions, getUserById } = require('../db');
 
 /**
  * GET /api/insights/health-score
@@ -29,15 +29,22 @@ router.get('/overview', async (req, res) => {
     const dailyTrend = await getDailySpending({ userId });
     const healthScore = await calculateHealthScore(userId);
 
+    // Monthly Salary set in profile auto-populates as baseline income when
+    // no (or less) income has been logged for the month yet
+    const user = await getUserById({ id: userId });
+    const monthlyIncome = parseFloat(user && user.monthlyIncome) || 0;
+    const totalIncome = Math.max(parseFloat(summary.totalIncome) || 0, monthlyIncome);
+    summary.totalIncome = totalIncome;
+
     // Find finance category total to exclude from savings rate calculation
     const financeTotal = categories
       .filter(c => c.category === 'Finance')
       .reduce((sum, c) => sum + c.total, 0);
 
     // Calculate savings
-    const savings = summary.totalIncome - (summary.totalExpense - financeTotal);
-    const savingsRate = summary.totalIncome > 0
-      ? Math.round((savings / summary.totalIncome) * 100)
+    const savings = totalIncome - (summary.totalExpense - financeTotal);
+    const savingsRate = totalIncome > 0
+      ? Math.round((savings / totalIncome) * 100)
       : 0;
 
     // Category percentages (expense only)
@@ -122,6 +129,15 @@ router.get('/overview', async (req, res) => {
         type: 'warning',
         category: 'Consistency',
         text: 'Consistency low hai bhai. Roz transaction track kar, habit banana padega! 📝'
+      });
+    }
+
+    // Budget Discipline warning (salary-aware factor)
+    if (healthScore.breakdown.budgetDiscipline && healthScore.breakdown.budgetDiscipline.active && healthScore.breakdown.budgetDiscipline.score < 50) {
+      jarvisAdvice.push({
+        type: 'warning',
+        category: 'Budget',
+        text: 'Salary ke against kharcha zyada ho raha hai! Budget tight karo warna month end me dikkat hogi 💳'
       });
     }
 
