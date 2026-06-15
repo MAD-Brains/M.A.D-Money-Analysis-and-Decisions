@@ -253,7 +253,7 @@ const TRANSLATIONS = {
 
     // settings
     'settings.financialProfile': 'Financial Profile',
-    'settings.monthlyIncome': 'Monthly Income',
+    'settings.monthlyIncome': 'Monthly Salary',
     'settings.appearance': 'Appearance',
     'settings.darkMode': 'Dark Mode',
     'settings.soundHaptics': 'Sound & Haptics',
@@ -280,8 +280,8 @@ const TRANSLATIONS = {
     'profile.updatePasswordButton': 'Update Password',
 
     // income
-    'income.description': 'Set your baseline monthly income.',
-    'income.saveButton': 'Save Income',
+    'income.description': 'Set your baseline monthly salary.',
+    'income.saveButton': 'Save Salary',
 
     // friend
     'friend.addTitle': 'Add Friend',
@@ -340,7 +340,7 @@ const TRANSLATIONS = {
     'toast.friendAcceptFailed': 'Failed to accept',
     'toast.avatarUpdated': 'Profile picture updated! 📸',
     'toast.uploadFailed': 'Upload failed',
-    'toast.incomeUpdated': 'Income updated successfully! ✓',
+    'toast.incomeUpdated': 'Salary updated successfully! ✓',
     'toast.comingSoon': 'Future Simulator is coming soon! 🚀',
   },
 
@@ -566,7 +566,7 @@ const TRANSLATIONS = {
     'friendDetail.removeConfirm': 'इस स्प्लिट को हटाएं? राशि आपके हिस्से में वापस जोड़ दी जाएगी।',
 
     'settings.financialProfile': 'वित्तीय प्रोफ़ाइल',
-    'settings.monthlyIncome': 'मासिक आय',
+    'settings.monthlyIncome': 'मासिक सैलरी',
     'settings.appearance': 'दिखावट',
     'settings.darkMode': 'डार्क मोड',
     'settings.soundHaptics': 'ध्वनि और कंपन',
@@ -591,8 +591,8 @@ const TRANSLATIONS = {
     'profile.newPassword': 'नया पासवर्ड',
     'profile.updatePasswordButton': 'पासवर्ड अपडेट करें',
 
-    'income.description': 'अपनी आधारभूत मासिक आय सेट करें।',
-    'income.saveButton': 'आय सहेजें',
+    'income.description': 'अपनी आधारभूत मासिक सैलरी सेट करें।',
+    'income.saveButton': 'सैलरी सहेजें',
 
     'friend.addTitle': 'दोस्त जोड़ें',
     'friend.addDescription': 'बिल आसानी से बांटने और साझा खर्चों को प्रबंधित करने के लिए दोस्तों से जुड़ें।',
@@ -648,7 +648,7 @@ const TRANSLATIONS = {
     'toast.friendAcceptFailed': 'स्वीकार करने में विफल',
     'toast.avatarUpdated': 'प्रोफ़ाइल तस्वीर अपडेट हुई! 📸',
     'toast.uploadFailed': 'अपलोड विफल',
-    'toast.incomeUpdated': 'आय सफलतापूर्वक अपडेट हुई! ✓',
+    'toast.incomeUpdated': 'सैलरी सफलतापूर्वक अपडेट हुई! ✓',
     'toast.comingSoon': 'फ्यूचर सिम्युलेटर जल्द आ रहा है! 🚀',
   },
 
@@ -874,7 +874,7 @@ const TRANSLATIONS = {
     'friendDetail.removeConfirm': 'Ye split hatau? Amount tumhare share me wapas add ho jayega.',
 
     'settings.financialProfile': 'Financial Profile',
-    'settings.monthlyIncome': 'Monthly Income',
+    'settings.monthlyIncome': 'Monthly Salary',
     'settings.appearance': 'Appearance',
     'settings.darkMode': 'Dark Mode',
     'settings.soundHaptics': 'Sound & Haptics',
@@ -899,8 +899,8 @@ const TRANSLATIONS = {
     'profile.newPassword': 'New Password',
     'profile.updatePasswordButton': 'Password Update karo',
 
-    'income.description': 'Apni baseline monthly income set karo.',
-    'income.saveButton': 'Income Save karo',
+    'income.description': 'Apni baseline monthly salary set karo.',
+    'income.saveButton': 'Salary Save karo',
 
     'friend.addTitle': 'Friend Add karo',
     'friend.addDescription': 'Bills aasani se split karne aur shared expenses manage karne ke liye friends se connect karo.',
@@ -956,7 +956,7 @@ const TRANSLATIONS = {
     'toast.friendAcceptFailed': 'Accept nahi hua',
     'toast.avatarUpdated': 'Profile picture update ho gayi! 📸',
     'toast.uploadFailed': 'Upload fail ho gaya',
-    'toast.incomeUpdated': 'Income update ho gayi! ✓',
+    'toast.incomeUpdated': 'Salary update ho gayi! ✓',
     'toast.comingSoon': 'Future Simulator jald aa raha hai! 🚀',
   },
 };

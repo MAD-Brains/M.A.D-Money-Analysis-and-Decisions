@@ -125,27 +125,6 @@ router.get('/overview', async (req, res) => {
       });
     }
 
-    // Goal Progress warnings (new v2 factor)
-    if (healthScore.breakdown.goalProgress && healthScore.breakdown.goalProgress.score < 50) {
-      const detail = healthScore.breakdown.goalProgress.detail;
-      if (detail && detail !== 'no_goals') {
-        jarvisAdvice.push({
-          type: 'warning',
-          category: 'Goals',
-          text: 'Goal progress peeche chal raha hai bhai. High priority goals pe focus kar, savings badha! 🎯'
-        });
-      }
-    }
-
-    // Budget Discipline warnings (new v2 factor)
-    if (healthScore.breakdown.budgetDiscipline && healthScore.breakdown.budgetDiscipline.active && healthScore.breakdown.budgetDiscipline.score < 50) {
-      jarvisAdvice.push({
-        type: 'warning',
-        category: 'Budget',
-        text: 'Salary ke against kharcha zyada ho raha hai! Budget tight karo warna month end me dikkat hogi 💳'
-      });
-    }
-
     return res.json({
       success: true,
       month: new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
