@@ -9,10 +9,11 @@ This document summarizes the changes introduced to establish the "Social" founda
 - **UI:** A sleek overlay accessible via the top-right menu.
 - **Profile Picture (Avatar):** Users can upload a custom profile picture. The image is resized client-side using an HTML5 Canvas to a maximum width of 250px and sent as a compressed JPEG Base64 string to the backend. Images are saved to a local `uploads/` directory and served statically.
 - **QR Code:** A scannable QR code generated client-side using `qrcode.min.js`. It renders the user's `@username`.
-- **Edit Details:** Users can update their `Display Name` and `Email`.
+- **Edit Details (Display Name, Email, Monthly Salary):** Users can update their `Display Name`, `Email`, and `Monthly Salary` (which saves baseline monthly income under the hood). Setting the Monthly Salary dynamically recalculates budget discipline and refreshes the Money Health Score displays in real-time.
+- **Localization & Terminology Overhaul**: Rebranded the concept of "Monthly Income" to "Monthly Salary" across all UI views and multi-language translation dictionaries (English, Hindi, Hinglish).
 - **Password Management:** Form to update passwords securely.
 - **Backend:** 
-  - `PUT /api/auth/me` to update user details.
+  - `PUT /api/auth/me` to update user details (including monthly salary).
   - `POST /api/auth/avatar` to securely receive, parse, and store the base64 image data to the disk.
   - `PUT /api/auth/password` to verify the current hash and generate a new bcrypt hash.
 
