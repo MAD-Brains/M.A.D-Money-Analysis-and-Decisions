@@ -796,6 +796,13 @@ body {
   transform: scale(0.92);
 }
 
+/* ─── Group Ledger (Individual / Group tabs) ─── */
+#create-group-btn,
+#create-group-submit-btn {
+  display: block;
+  width: 100%;
+}
+
 /* Stagger */
 .txn-row:nth-child(1) { animation-delay: 0s; }
 .txn-row:nth-child(2) { animation-delay: 0.03s; }

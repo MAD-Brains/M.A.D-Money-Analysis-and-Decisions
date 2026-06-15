@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { pool, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit, getConnectedUserByName, insertNotification, getUserById } = require('../db');
+const { pool, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit } = require('../db');
 const { parseInput } = require('../parser');
+const { notifySplitParticipants } = require('../utils/splitNotify');
 
 /**
  * POST /api/transactions
@@ -94,24 +95,8 @@ router.post('/', async (req, res) => {
       client.release();
     }
 
-    // Issue #3: notify connected friends (best-effort, non-blocking for response correctness)
-    for (const { friendName, splitAmount } of splitsToCreate) {
-      try {
-        const connectedUser = await getConnectedUserByName({ userId, name: friendName });
-        if (connectedUser) {
-          const me = await getUserById({ id: userId });
-          const payerName = me?.displayName || me?.username || 'Someone';
-          await insertNotification({
-            userId: connectedUser.userId,
-            type: 'split_added',
-            message: `${payerName} added a split of ₹${splitAmount.toLocaleString('en-IN')} for "${note || category}" with you.`,
-            relatedId: transactionId,
-          });
-        }
-      } catch (notifyErr) {
-        console.error('Split notification error (non-fatal):', notifyErr);
-      }
-    }
+    // Notify connected friends (best-effort, non-blocking for response correctness)
+    await notifySplitParticipants({ userId, splitsToCreate, note, category, transactionId });
 
     return res.json({
       success: true,
