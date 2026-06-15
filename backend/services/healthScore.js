@@ -113,7 +113,10 @@ async function calculateHealthScore(userId) {
   const activeExpenseCategories = categories.filter(c => c.category !== 'Finance' && c.category !== 'Income');
   let controlScore = 50;
   const totalControlSpend = adjustedExpense;
-  if (totalControlSpend > 0 && activeExpenseCategories.length > 0) {
+  if (totalControlSpend === 0 && totalIncome > 0) {
+    // No expenses at all but income exists = perfect control
+    controlScore = 100;
+  } else if (totalControlSpend > 0 && activeExpenseCategories.length > 0) {
     let essentialSpend = 0;
     let nonEssentialSpend = 0;
 
@@ -147,18 +150,23 @@ async function calculateHealthScore(userId) {
   // ═══════════════════════════════════════
   // 5. CONSISTENCY (10%)
   // ═══════════════════════════════════════
-  const trackingRate = dayOfMonth > 0 ? activeDays / dayOfMonth : 0;
   let consistencyScore;
-  if (trackingRate >= 0.8) {
+  if (adjustedExpense === 0 && totalIncome > 0) {
+    // No expenses to track yet — nothing to miss, perfect consistency
     consistencyScore = 100;
-  } else if (trackingRate >= 0.5) {
-    consistencyScore = 60 + (trackingRate - 0.5) / 0.3 * 40;
-  } else if (trackingRate >= 0.2) {
-    consistencyScore = 35 + (trackingRate - 0.2) / 0.3 * 25;
-  } else if (trackingRate > 0) {
-    consistencyScore = 20 + trackingRate / 0.2 * 15;
   } else {
-    consistencyScore = 10;
+    const trackingRate = dayOfMonth > 0 ? activeDays / dayOfMonth : 0;
+    if (trackingRate >= 0.8) {
+      consistencyScore = 100;
+    } else if (trackingRate >= 0.5) {
+      consistencyScore = 60 + (trackingRate - 0.5) / 0.3 * 40;
+    } else if (trackingRate >= 0.2) {
+      consistencyScore = 35 + (trackingRate - 0.2) / 0.3 * 25;
+    } else if (trackingRate > 0) {
+      consistencyScore = Math.max(40, 20 + trackingRate / 0.2 * 15);
+    } else {
+      consistencyScore = 10;
+    }
   }
 
   // ═══════════════════════════════════════
@@ -167,7 +175,8 @@ async function calculateHealthScore(userId) {
   const numCategories = activeExpenseCategories.length;
   let diversityScore;
   if (numCategories === 0) {
-    diversityScore = 50;
+    // No expenses yet — not applicable, score stays perfect
+    diversityScore = totalIncome > 0 ? 100 : 50;
   } else if (numCategories === 1) {
     diversityScore = 35;
   } else if (numCategories === 2) {
@@ -237,13 +246,13 @@ async function calculateHealthScore(userId) {
 async function calculateGoalProgress(userId) {
   const goals = await getActiveGoals({ userId });
 
-  // No goals set → neutral score (not penalized)
+  // No goals set → perfect score (nothing to fail at)
   if (!goals || goals.length === 0) {
     return {
-      score: 60,
+      score: 100,
       detail: 'no_goals',
       goalCount: 0,
-      highPriorityOnTrack: false,
+      highPriorityOnTrack: true,
       highPriorityBehind: false,
     };
   }
