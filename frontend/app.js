@@ -3402,6 +3402,7 @@ if (editIncomeForm) {
           incomeDisplay.textContent = `₹${monthlyIncome.toLocaleString('en-IN')}`;
         }
         editIncomeOverlay.classList.remove('active');
+        fetchHealthScore();
       } else {
         showToast(data.error || t('toast.updateFailed'), true);
       }
