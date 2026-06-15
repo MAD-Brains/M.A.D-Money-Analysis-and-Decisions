@@ -171,6 +171,32 @@ async function initDB() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_expense_participants_expenseid ON expense_participants("expenseId")`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_expense_participants_userid ON expense_participants("userId")`);
 
+    // Create groups table (Group Expenses)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS groups (
+        id SERIAL PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        name TEXT NOT NULL,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create group_members table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_members (
+        id SERIAL PRIMARY KEY,
+        "groupId" INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        "friendId" INTEGER NOT NULL REFERENCES friends(id),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE("groupId", "friendId")
+      )
+    `);
+
+    // Additive migration: tag splits with the group they belong to (if any)
+    await client.query(`ALTER TABLE splits ADD COLUMN IF NOT EXISTS "groupId" INTEGER REFERENCES groups(id) ON DELETE SET NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_splits_groupid ON splits("groupId")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_group_members_groupid ON group_members("groupId")`);
+
     console.log('  ✅ PostgreSQL tables initialized');
   } catch (err) {
     console.error('  ❌ DB initialization error:', err);
@@ -557,11 +583,11 @@ async function getAllFriends({ userId }) {
   return rows;
 }
 
-async function insertSplit({ transactionId, friendId, splitAmount }) {
+async function insertSplit({ transactionId, friendId, splitAmount, groupId = null }) {
   const { rows } = await pool.query(
-    `INSERT INTO splits ("transactionId", "friendId", "splitAmount")
-     VALUES ($1, $2, $3) RETURNING id`,
-    [transactionId, friendId, splitAmount]
+    `INSERT INTO splits ("transactionId", "friendId", "splitAmount", "groupId")
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [transactionId, friendId, splitAmount, groupId]
   );
   return rows[0];
 }
@@ -627,6 +653,82 @@ async function getSplitsForTransaction({ transactionId }) {
   const { rows } = await pool.query(
     `SELECT id, "splitAmount" FROM splits WHERE "transactionId" = $1`,
     [transactionId]
+  );
+  return rows;
+}
+
+// ─── Group Expenses Queries ───
+
+async function insertGroup({ userId, name }) {
+  const { rows } = await pool.query(
+    `INSERT INTO groups ("userId", name) VALUES ($1, $2) RETURNING id, name, "createdAt"`,
+    [userId, name]
+  );
+  return rows[0];
+}
+
+async function getGroupsForUser({ userId }) {
+  const { rows } = await pool.query(
+    `SELECT g.id, g.name, g."createdAt",
+       COUNT(DISTINCT gm."friendId") AS "memberCount",
+       COALESCE(SUM(CASE WHEN s."isSettled" = 0 THEN s."splitAmount" ELSE 0 END), 0) AS "netBalance"
+     FROM groups g
+     LEFT JOIN group_members gm ON gm."groupId" = g.id
+     LEFT JOIN splits s ON s."groupId" = g.id
+     WHERE g."userId" = $1
+     GROUP BY g.id, g.name, g."createdAt"
+     ORDER BY g."createdAt" DESC`,
+    [userId]
+  );
+  return rows;
+}
+
+async function getGroupById({ id, userId }) {
+  const { rows } = await pool.query(
+    `SELECT id, name, "createdAt" FROM groups WHERE id = $1 AND "userId" = $2`,
+    [id, userId]
+  );
+  return rows[0] || null;
+}
+
+async function getGroupMembersWithBalances({ groupId }) {
+  const { rows } = await pool.query(
+    `SELECT f.id AS "friendId", f.name, f."upiId",
+       COALESCE(SUM(CASE WHEN s."isSettled" = 0 THEN s."splitAmount" ELSE 0 END), 0) AS "groupBalance"
+     FROM group_members gm
+     JOIN friends f ON f.id = gm."friendId"
+     LEFT JOIN splits s ON s."friendId" = f.id AND s."groupId" = gm."groupId"
+     WHERE gm."groupId" = $1
+     GROUP BY f.id, f.name, f."upiId"
+     ORDER BY f.name ASC`,
+    [groupId]
+  );
+  return rows;
+}
+
+async function addGroupMember({ groupId, friendId }) {
+  const { rows } = await pool.query(
+    `INSERT INTO group_members ("groupId", "friendId") VALUES ($1, $2)
+     ON CONFLICT ("groupId", "friendId") DO NOTHING RETURNING id`,
+    [groupId, friendId]
+  );
+  return rows[0] || null;
+}
+
+async function getGroupExpenses({ groupId }) {
+  const { rows } = await pool.query(
+    `SELECT t.id AS "transactionId", t.amount AS "transactionAmount", t.note, t.category, t.date, t."createdAt",
+       json_agg(json_build_object(
+         'splitId', s.id, 'friendId', f.id, 'name', f.name,
+         'splitAmount', s."splitAmount", 'isSettled', s."isSettled"
+       ) ORDER BY f.name) AS participants
+     FROM splits s
+     JOIN transactions t ON t.id = s."transactionId"
+     JOIN friends f ON f.id = s."friendId"
+     WHERE s."groupId" = $1 AND t."isIncorrect" = 0
+     GROUP BY t.id, t.amount, t.note, t.category, t.date, t."createdAt"
+     ORDER BY t."createdAt" DESC`,
+    [groupId]
   );
   return rows;
 }
@@ -888,6 +990,13 @@ module.exports = {
   getFriendSplitDetails,
   getSplitWithOwnership,
   getSplitsForTransaction,
+  // Group Expenses
+  insertGroup,
+  getGroupsForUser,
+  getGroupById,
+  getGroupMembersWithBalances,
+  addGroupMember,
+  getGroupExpenses,
   // Users / Auth
   insertUser,
   getUserByEmail,

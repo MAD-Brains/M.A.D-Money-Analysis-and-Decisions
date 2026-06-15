@@ -17,6 +17,7 @@ const friendRoutes = require('./routes/friends');
 const connectionsRoutes = require('./routes/connections');
 const notificationsRoutes = require('./routes/notifications');
 const splitsRoutes = require('./routes/splits');
+const groupsRoutes = require('./routes/groups');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -80,6 +81,7 @@ app.use('/api/friends', requireAuth, friendRoutes);
 app.use('/api/connections', requireAuth, connectionsRoutes);
 app.use('/api/notifications', requireAuth, notificationsRoutes);
 app.use('/api/splits', requireAuth, splitsRoutes);
+app.use('/api/groups', requireAuth, groupsRoutes);
 
 // Fallback: serve index.html for any non-API route (local dev only)
 if (!process.env.FRONTEND_URL) {

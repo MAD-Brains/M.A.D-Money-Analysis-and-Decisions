@@ -158,6 +158,7 @@ const ledgerTotalSub   = document.getElementById('ledger-total-subtitle');
 const friendsListBtn     = document.getElementById('friends-list-btn');
 const friendsListOverlay = document.getElementById('friends-list-overlay');
 const friendsListBack    = document.getElementById('friends-list-back');
+const friendsListAddBtn  = document.getElementById('friends-list-add-btn');
 const friendsListList    = document.getElementById('friends-list-list');
 const friendsListEmpty   = document.getElementById('friends-list-empty');
 
@@ -193,6 +194,58 @@ const splitRows         = document.getElementById('split-rows');
 const splitSummary      = document.getElementById('split-summary');
 const splitSubmitBtn    = document.getElementById('split-submit-btn');
 const splitSuggestions  = document.getElementById('split-suggestions');
+
+// Ledger Tabs / Groups DOM (NEW)
+const ledgerTabIndividual  = document.getElementById('ledger-tab-individual');
+const ledgerTabGroups      = document.getElementById('ledger-tab-groups');
+const ledgerIndividualView = document.getElementById('ledger-individual-view');
+const ledgerGroupsView     = document.getElementById('ledger-groups-view');
+const createGroupBtn       = document.getElementById('create-group-btn');
+const groupsList           = document.getElementById('groups-list');
+const groupsEmpty          = document.getElementById('groups-empty');
+
+// Create Group Overlay DOM (NEW)
+const createGroupOverlay    = document.getElementById('create-group-overlay');
+const createGroupBack       = document.getElementById('create-group-back');
+const groupNameInput        = document.getElementById('group-name-input');
+const groupMemberChips      = document.getElementById('group-member-chips');
+const groupAddFriendInline  = document.getElementById('group-add-friend-inline');
+const groupNewFriendInput   = document.getElementById('group-new-friend-input');
+const groupNewFriendConfirm = document.getElementById('group-new-friend-confirm');
+const groupAddFriendBtn     = document.getElementById('group-add-friend-btn');
+const createGroupSubmitBtn  = document.getElementById('create-group-submit-btn');
+
+// Group Detail Overlay DOM (NEW)
+const groupDetailOverlay          = document.getElementById('group-detail-overlay');
+const groupDetailBack             = document.getElementById('group-detail-back');
+const groupDetailTitle            = document.getElementById('group-detail-title');
+const groupAddExpenseBtn          = document.getElementById('group-add-expense-btn');
+const groupDetailMembers          = document.getElementById('group-detail-members');
+const groupDetailAddMemberInline  = document.getElementById('group-detail-add-member-inline');
+const groupDetailNewMemberInput   = document.getElementById('group-detail-new-member-input');
+const groupDetailNewMemberConfirm = document.getElementById('group-detail-new-member-confirm');
+const groupDetailAddMemberBtn     = document.getElementById('group-detail-add-member-btn');
+const groupDetailExpenses         = document.getElementById('group-detail-expenses');
+const groupDetailExpensesEmpty    = document.getElementById('group-detail-expenses-empty');
+
+// Group Expense Modal DOM (NEW)
+const groupExpenseBackdrop       = document.getElementById('group-expense-backdrop');
+const groupExpenseClose          = document.getElementById('group-expense-close');
+const groupExpenseAmount         = document.getElementById('group-expense-amount');
+const groupExpenseNote           = document.getElementById('group-expense-note');
+const groupExpenseCategory       = document.getElementById('group-expense-category');
+const groupExpenseMethodSelector = document.getElementById('group-expense-method-selector');
+const groupExpenseRows           = document.getElementById('group-expense-rows');
+const groupExpenseSummary        = document.getElementById('group-expense-summary');
+const groupExpenseSubmitBtn      = document.getElementById('group-expense-submit-btn');
+
+// Groups state (NEW)
+let currentGroupId = null;
+let groupMembersCache = []; // [{ friendId, name, upiId, groupBalance }]
+let selectedGroupMembers = []; // ordered list of display names for Create Group
+let activeGroupExpenseMethod = 'equally';
+let groupExpenseParsedAmount = null;
+let groupExpenseMemberNames = []; // participant names for the Add Expense modal's split rows
 
 // Jarvis Advice DOM
 const jarvisBtn          = document.getElementById('jarvis-btn');
@@ -1446,9 +1499,8 @@ function toggleSplitFriend(name) {
 }
 
 function renderSplitRows() {
-  splitRows.innerHTML = '';
-
   if (selectedSplitFriends.length === 0) {
+    splitRows.innerHTML = '';
     splitMethodField.style.display = 'none';
     splitSummary.style.display = 'none';
     splitSubmitBtn.disabled = true;
@@ -1458,7 +1510,19 @@ function renderSplitRows() {
   splitMethodField.style.display = 'block';
   splitSummary.style.display = 'block';
 
-  selectedSplitFriends.forEach(name => {
+  renderSplitRowsInto(splitRows, selectedSplitFriends, activeSplitMethod, updateSplitSummary);
+  updateSplitSummary();
+}
+
+/**
+ * Renders one input row per name (amount/percentage/shares depending on
+ * `method`, disabled for "equally") plus a trailing read-only "You" row.
+ * Shared by the main Split Picker and the Group Expense modal.
+ */
+function renderSplitRowsInto(rowsEl, names, method, onInput) {
+  rowsEl.innerHTML = '';
+
+  names.forEach(name => {
     const row = document.createElement('div');
     row.className = 'split-row';
 
@@ -1473,25 +1537,25 @@ function renderSplitRows() {
     input.dataset.friendName = name;
     input.min = '0';
 
-    if (activeSplitMethod === 'equally') {
+    if (method === 'equally') {
       input.type = 'text';
       input.disabled = true;
     } else {
       input.type = 'number';
-      input.addEventListener('input', updateSplitSummary);
-      if (activeSplitMethod === 'exact') {
+      if (onInput) input.addEventListener('input', onInput);
+      if (method === 'exact') {
         input.step = '0.01';
         input.placeholder = '₹';
-      } else if (activeSplitMethod === 'percentage') {
+      } else if (method === 'percentage') {
         input.step = '0.1';
         input.placeholder = '%';
-      } else if (activeSplitMethod === 'shares') {
+      } else if (method === 'shares') {
         input.step = '1';
         input.value = '1';
       }
     }
     row.appendChild(input);
-    splitRows.appendChild(row);
+    rowsEl.appendChild(row);
   });
 
   // "You" row — always shown, always a read-only computed remainder
@@ -1507,34 +1571,32 @@ function renderSplitRows() {
   youInput.dataset.role = 'you-display';
   youRow.appendChild(youLabel);
   youRow.appendChild(youInput);
-  splitRows.appendChild(youRow);
-
-  updateSplitSummary();
+  rowsEl.appendChild(youRow);
 }
 
 /**
  * Computes each friend's ₹ amount (and your remainder share) for the active
  * split method. All four methods funnel into the same { friendName, amount }
- * shape that POST /api/transactions expects.
+ * shape that POST /api/transactions and POST /api/groups/:id/expenses expect.
+ * Shared by the main Split Picker and the Group Expense modal.
  */
-function computeSplitBreakdown() {
-  if (splitParsedAmount == null || selectedSplitFriends.length === 0) return null;
+function computeBreakdown(total, names, method, rowsEl) {
+  if (total == null || names.length === 0) return null;
 
-  const total = splitParsedAmount;
-  const n = selectedSplitFriends.length;
-  const friendInputs = Array.from(splitRows.querySelectorAll('[data-role="friend-input"]'));
+  const n = names.length;
+  const friendInputs = Array.from(rowsEl.querySelectorAll('[data-role="friend-input"]'));
   let friendAmounts = [];
   let error = null;
 
-  if (activeSplitMethod === 'equally') {
+  if (method === 'equally') {
     const share = Math.round((total / (n + 1)) * 100) / 100;
-    friendAmounts = selectedSplitFriends.map(name => ({ name, amount: share }));
-  } else if (activeSplitMethod === 'exact') {
+    friendAmounts = names.map(name => ({ name, amount: share }));
+  } else if (method === 'exact') {
     friendAmounts = friendInputs.map(input => ({ name: input.dataset.friendName, amount: parseFloat(input.value) }));
     if (friendAmounts.some(f => !Number.isFinite(f.amount) || f.amount < 0)) {
       error = t('split.errorAmount');
     }
-  } else if (activeSplitMethod === 'percentage') {
+  } else if (method === 'percentage') {
     const pcts = friendInputs.map(input => ({ name: input.dataset.friendName, pct: parseFloat(input.value) }));
     if (pcts.some(p => !Number.isFinite(p.pct) || p.pct < 0)) {
       error = t('split.errorPercentage');
@@ -1543,7 +1605,7 @@ function computeSplitBreakdown() {
     } else {
       friendAmounts = pcts.map(p => ({ name: p.name, amount: Math.round((total * p.pct / 100) * 100) / 100 }));
     }
-  } else if (activeSplitMethod === 'shares') {
+  } else if (method === 'shares') {
     const yourWeight = 1; // you always hold one share
     const weights = friendInputs.map(input => ({ name: input.dataset.friendName, weight: parseFloat(input.value) }));
     if (weights.some(w => !Number.isFinite(w.weight) || w.weight <= 0)) {
@@ -1563,6 +1625,10 @@ function computeSplitBreakdown() {
   }
 
   return { total, friendAmounts, friendTotal, yourShare, error };
+}
+
+function computeSplitBreakdown() {
+  return computeBreakdown(splitParsedAmount, selectedSplitFriends, activeSplitMethod, splitRows);
 }
 
 function updateSplitSummary() {
@@ -1707,6 +1773,461 @@ splitMethodSelector.querySelectorAll('.split-method-btn').forEach(btn => {
     renderSplitRows();
   });
 });
+
+// ═══════════════════════════════════════════════
+// GROUP LEDGER (Individual / Group tabs)
+// ═══════════════════════════════════════════════
+function switchLedgerTab(tab) {
+  if (tab === 'groups') {
+    ledgerTabIndividual.classList.remove('active');
+    ledgerTabGroups.classList.add('active');
+    ledgerIndividualView.style.display = 'none';
+    ledgerGroupsView.style.display = 'block';
+    fetchGroups();
+  } else {
+    ledgerTabGroups.classList.remove('active');
+    ledgerTabIndividual.classList.add('active');
+    ledgerGroupsView.style.display = 'none';
+    ledgerIndividualView.style.display = 'block';
+    fetchLedger();
+  }
+}
+
+async function fetchGroups() {
+  try {
+    const res = await fetch(`${API_BASE}/groups`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    groupsList.innerHTML = '';
+    if (!data.groups || data.groups.length === 0) {
+      groupsEmpty.style.display = '';
+      return;
+    }
+    groupsEmpty.style.display = 'none';
+    data.groups.forEach((g, i) => renderGroupRow(g, i));
+  } catch (err) {
+    console.error('fetchGroups error:', err);
+  }
+}
+
+function renderGroupRow(g, i) {
+  const net = g.netBalance || 0;
+  let color = 'var(--text-secondary)';
+  let text = t('friendDetail.settled');
+  if (net > 0) { color = '#34d399'; text = t('ledger.owesYou'); }
+  else if (net < 0) { color = '#ef4444'; text = t('ledger.youOwe'); }
+
+  const row = document.createElement('div');
+  row.className = 'txn-row txn-row--clickable';
+  row.style.animationDelay = `${i * 0.04}s`;
+  row.innerHTML = `
+    <div class="txn-row__icon" style="background: ${color}1f;">👥</div>
+    <div class="txn-row__details">
+      <div class="txn-row__note">${escapeHtml(g.name)}</div>
+      <div class="txn-row__meta">
+        <span class="txn-row__category" style="color: ${color};">${text}</span>
+        <span class="txn-row__category">${t('groups.memberCount', { count: g.memberCount })}</span>
+      </div>
+    </div>
+    <div class="txn-row__amount" style="color: ${color};">${net !== 0 ? '₹' + Math.abs(net).toLocaleString('en-IN') : ''}</div>
+  `;
+  row.addEventListener('click', () => openGroupDetail(g.id, g.name));
+  groupsList.appendChild(row);
+}
+
+// ─── Create Group ───
+function renderGroupMemberChips() {
+  groupMemberChips.innerHTML = '';
+
+  const renderChip = (name, selected) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `split-chip${selected ? ' split-chip--selected' : ''}`;
+    chip.textContent = name;
+    chip.addEventListener('click', () => toggleGroupMember(name));
+    groupMemberChips.appendChild(chip);
+  };
+
+  const knownNamesLower = new Set();
+  splitFriendsCache.forEach(friend => {
+    knownNamesLower.add(friend.name.toLowerCase());
+    const isSelected = selectedGroupMembers.some(n => n.toLowerCase() === friend.name.toLowerCase());
+    renderChip(friend.name, isSelected);
+  });
+
+  selectedGroupMembers.forEach(name => {
+    if (!knownNamesLower.has(name.toLowerCase())) renderChip(name, true);
+  });
+}
+
+function toggleGroupMember(name) {
+  const idx = selectedGroupMembers.findIndex(n => n.toLowerCase() === name.toLowerCase());
+  if (idx >= 0) selectedGroupMembers.splice(idx, 1);
+  else selectedGroupMembers.push(name);
+  renderGroupMemberChips();
+}
+
+function addInlineGroupMember() {
+  const name = groupNewFriendInput.value.trim();
+  if (!name) return;
+  if (!selectedGroupMembers.some(n => n.toLowerCase() === name.toLowerCase())) {
+    selectedGroupMembers.push(name);
+    renderGroupMemberChips();
+    playSound('tap');
+  }
+  groupNewFriendInput.value = '';
+  groupAddFriendInline.style.display = 'none';
+}
+
+async function openCreateGroupOverlay() {
+  await fetchFriends();
+
+  groupNameInput.value = '';
+  selectedGroupMembers = [];
+  if (groupAddFriendInline) groupAddFriendInline.style.display = 'none';
+  if (groupNewFriendInput) groupNewFriendInput.value = '';
+  renderGroupMemberChips();
+
+  createGroupOverlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+async function submitCreateGroup() {
+  const name = groupNameInput.value.trim();
+  if (!name) {
+    showToast(t('groups.nameRequired'), true);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, memberNames: selectedGroupMembers }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.error || t('toast.groupCreateFailed'), true);
+      return;
+    }
+
+    showToast(t('toast.groupCreated'));
+    playSound('success');
+    vibrate([20, 30, 20]);
+    createGroupOverlay.style.display = 'none';
+    fetchGroups();
+    fetchFriends();
+    openGroupDetail(data.group.id, data.group.name);
+  } catch (err) {
+    console.error('submitCreateGroup error:', err);
+    showToast(t('toast.networkError'), true);
+  }
+}
+
+// ─── Group Detail ───
+function openGroupDetail(groupId, name) {
+  groupDetailTitle.textContent = name;
+  groupDetailOverlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  if (groupDetailAddMemberInline) groupDetailAddMemberInline.style.display = 'none';
+  if (groupDetailNewMemberInput) groupDetailNewMemberInput.value = '';
+
+  fetchGroupDetail(groupId);
+}
+
+async function fetchGroupDetail(groupId) {
+  try {
+    const res = await fetch(`${API_BASE}/groups/${groupId}`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    currentGroupId = groupId;
+    groupMembersCache = data.members || [];
+    groupDetailTitle.textContent = data.group.name;
+
+    renderGroupDetailMembers(groupMembersCache);
+    renderGroupDetailExpenses(data.expenses || []);
+  } catch (err) {
+    console.error('fetchGroupDetail error:', err);
+  }
+}
+
+function renderGroupDetailMembers(members) {
+  groupDetailMembers.innerHTML = '';
+  members.forEach((m, i) => {
+    const net = m.groupBalance || 0;
+    let color = 'var(--text-secondary)';
+    let text = t('friendDetail.settled');
+    if (net > 0) { color = '#34d399'; text = t('ledger.owesYou'); }
+    else if (net < 0) { color = '#ef4444'; text = t('ledger.youOwe'); }
+
+    const row = document.createElement('div');
+    row.className = 'txn-row';
+    row.style.animationDelay = `${i * 0.04}s`;
+    row.innerHTML = `
+      <div class="txn-row__icon" style="background: ${color}1f;">👤</div>
+      <div class="txn-row__details">
+        <div class="txn-row__note" style="text-transform: capitalize;">${escapeHtml(m.name)}</div>
+        <div class="txn-row__meta">
+          <span class="txn-row__category" style="color: ${color};">${text}</span>
+        </div>
+      </div>
+      <div class="txn-row__amount" style="color: ${color};">${net !== 0 ? '₹' + Math.abs(net).toLocaleString('en-IN') : ''}</div>
+    `;
+    groupDetailMembers.appendChild(row);
+  });
+}
+
+function renderGroupDetailExpenses(expenses) {
+  groupDetailExpenses.innerHTML = '';
+  if (expenses.length === 0) {
+    groupDetailExpensesEmpty.style.display = 'block';
+    groupDetailExpenses.style.display = 'none';
+    return;
+  }
+
+  groupDetailExpensesEmpty.style.display = 'none';
+  groupDetailExpenses.style.display = 'flex';
+  expenses.forEach((exp, i) => groupDetailExpenses.appendChild(renderGroupExpenseRow(exp, i)));
+}
+
+function renderGroupExpenseRow(exp, i) {
+  const emoji = CATEGORY_EMOJI[exp.category] || '📦';
+  const displayNote = exp.note || exp.category;
+  const participantsTotal = exp.participants.reduce((sum, p) => sum + (p.splitAmount || 0), 0);
+  const totalAmount = exp.transactionAmount + participantsTotal;
+
+  const breakdown = [`${t('split.you')} ₹${exp.transactionAmount.toLocaleString('en-IN')}`]
+    .concat(exp.participants.map(p => `${p.name} ₹${p.splitAmount.toLocaleString('en-IN')}`))
+    .join(' · ');
+
+  const row = document.createElement('div');
+  row.className = 'txn-row';
+  row.style.animationDelay = `${i * 0.04}s`;
+  row.innerHTML = `
+    <div class="txn-row__icon txn-row__icon--${exp.category}">${emoji}</div>
+    <div class="txn-row__details">
+      <div class="txn-row__note">${escapeHtml(displayNote)}</div>
+      <div class="txn-row__meta">
+        <span class="txn-row__category">${exp.date}</span>
+        <span class="txn-row__category">${escapeHtml(breakdown)}</span>
+      </div>
+    </div>
+    <div class="txn-row__amount">₹${totalAmount.toLocaleString('en-IN')}</div>
+  `;
+  return row;
+}
+
+// ─── Add Member (Group Detail) ───
+async function addGroupDetailMember() {
+  const name = groupDetailNewMemberInput.value.trim();
+  if (!name) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/groups/${currentGroupId}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.error || t('toast.memberAddFailed'), true);
+      playSound('error');
+      vibrate(40);
+      return;
+    }
+
+    showToast(t('toast.memberAdded'));
+    playSound('success');
+    vibrate([20, 30, 20]);
+    groupMembersCache = data.members || [];
+    renderGroupDetailMembers(groupMembersCache);
+    groupDetailNewMemberInput.value = '';
+    groupDetailAddMemberInline.style.display = 'none';
+    fetchFriends();
+  } catch (err) {
+    console.error('addGroupDetailMember error:', err);
+    showToast(t('toast.networkError'), true);
+    playSound('error');
+    vibrate(40);
+  }
+}
+
+// ─── Add Group Expense ───
+function openGroupExpenseModal() {
+  groupExpenseAmount.value = '';
+  groupExpenseNote.value = '';
+  groupExpenseCategory.value = 'Food';
+  activeGroupExpenseMethod = 'equally';
+  groupExpenseParsedAmount = null;
+
+  groupExpenseMethodSelector.querySelectorAll('.split-method-btn').forEach(b => b.classList.remove('split-method-btn--active'));
+  const equallyBtn = groupExpenseMethodSelector.querySelector('[data-method="equally"]');
+  if (equallyBtn) equallyBtn.classList.add('split-method-btn--active');
+
+  groupExpenseMemberNames = groupMembersCache.map(m => m.name);
+  renderGroupExpenseRows();
+
+  groupExpenseSummary.style.display = 'none';
+  groupExpenseSummary.classList.remove('split-summary--invalid');
+  groupExpenseSubmitBtn.disabled = true;
+
+  groupExpenseBackdrop.style.display = 'flex';
+}
+
+function renderGroupExpenseRows() {
+  if (groupExpenseMemberNames.length === 0) {
+    groupExpenseRows.innerHTML = '';
+    return;
+  }
+  renderSplitRowsInto(groupExpenseRows, groupExpenseMemberNames, activeGroupExpenseMethod, updateGroupExpenseSummary);
+  updateGroupExpenseSummary();
+}
+
+function updateGroupExpenseSummary() {
+  const breakdown = computeBreakdown(groupExpenseParsedAmount, groupExpenseMemberNames, activeGroupExpenseMethod, groupExpenseRows);
+  if (!breakdown) {
+    groupExpenseSummary.style.display = 'none';
+    groupExpenseSubmitBtn.disabled = true;
+    return;
+  }
+
+  const youInput = groupExpenseRows.querySelector('[data-role="you-display"]');
+  if (youInput) youInput.value = `₹${breakdown.yourShare.toLocaleString('en-IN')}`;
+
+  groupExpenseSummary.style.display = 'block';
+
+  if (breakdown.error) {
+    groupExpenseSummary.classList.add('split-summary--invalid');
+    groupExpenseSummary.textContent = breakdown.error;
+    groupExpenseSubmitBtn.disabled = true;
+    return;
+  }
+
+  groupExpenseSummary.classList.remove('split-summary--invalid');
+  const parts = [t('split.youPay', { amount: breakdown.yourShare.toLocaleString('en-IN') })]
+    .concat(breakdown.friendAmounts.map(f => `${f.name} ₹${f.amount.toLocaleString('en-IN')}`));
+  groupExpenseSummary.textContent = parts.join(' · ');
+  groupExpenseSubmitBtn.disabled = false;
+}
+
+async function submitGroupExpense() {
+  const breakdown = computeBreakdown(groupExpenseParsedAmount, groupExpenseMemberNames, activeGroupExpenseMethod, groupExpenseRows);
+  if (!breakdown || breakdown.error) return;
+
+  const splits = breakdown.friendAmounts.map(f => ({ friendName: f.name, amount: f.amount }));
+
+  groupExpenseSubmitBtn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/groups/${currentGroupId}/expenses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: groupExpenseParsedAmount,
+        note: groupExpenseNote.value.trim(),
+        category: groupExpenseCategory.value,
+        splits,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.error || t('toast.groupExpenseFailed'), true);
+      groupExpenseSubmitBtn.disabled = false;
+      return;
+    }
+
+    groupExpenseBackdrop.style.display = 'none';
+    showToast(t('toast.groupExpenseAdded'));
+    playSound('success');
+    vibrate([20, 30, 20]);
+    fetchGroupDetail(currentGroupId);
+    fetchLedger();
+    fetchTransactions();
+    fetchHealthScore();
+    fetchFriends();
+  } catch (err) {
+    console.error('submitGroupExpense error:', err);
+    showToast(t('toast.networkError'), true);
+    groupExpenseSubmitBtn.disabled = false;
+  }
+}
+
+// ─── Event Wiring ───
+if (ledgerTabIndividual) ledgerTabIndividual.addEventListener('click', () => switchLedgerTab('individual'));
+if (ledgerTabGroups) ledgerTabGroups.addEventListener('click', () => switchLedgerTab('groups'));
+
+if (createGroupBtn) createGroupBtn.addEventListener('click', openCreateGroupOverlay);
+if (createGroupBack) {
+  createGroupBack.addEventListener('click', () => {
+    createGroupOverlay.style.display = 'none';
+    document.body.style.overflow = 'hidden';
+  });
+}
+if (createGroupSubmitBtn) createGroupSubmitBtn.addEventListener('click', submitCreateGroup);
+if (groupAddFriendBtn) {
+  groupAddFriendBtn.addEventListener('click', () => {
+    const isOpen = groupAddFriendInline.style.display !== 'none';
+    groupAddFriendInline.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) groupNewFriendInput.focus();
+  });
+}
+if (groupNewFriendConfirm) groupNewFriendConfirm.addEventListener('click', addInlineGroupMember);
+if (groupNewFriendInput) groupNewFriendInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addInlineGroupMember(); }
+});
+
+if (groupDetailBack) {
+  groupDetailBack.addEventListener('click', () => {
+    groupDetailOverlay.style.display = 'none';
+    document.body.style.overflow = 'hidden';
+  });
+}
+if (groupAddExpenseBtn) groupAddExpenseBtn.addEventListener('click', openGroupExpenseModal);
+if (groupDetailAddMemberBtn) {
+  groupDetailAddMemberBtn.addEventListener('click', () => {
+    const isOpen = groupDetailAddMemberInline.style.display !== 'none';
+    groupDetailAddMemberInline.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) groupDetailNewMemberInput.focus();
+  });
+}
+if (groupDetailNewMemberConfirm) groupDetailNewMemberConfirm.addEventListener('click', addGroupDetailMember);
+if (groupDetailNewMemberInput) groupDetailNewMemberInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addGroupDetailMember(); }
+});
+
+if (groupExpenseClose) {
+  groupExpenseClose.addEventListener('click', () => {
+    groupExpenseBackdrop.style.display = 'none';
+  });
+}
+if (groupExpenseBackdrop) {
+  groupExpenseBackdrop.addEventListener('click', (e) => {
+    if (e.target === groupExpenseBackdrop) groupExpenseBackdrop.style.display = 'none';
+  });
+}
+if (groupExpenseAmount) {
+  groupExpenseAmount.addEventListener('input', () => {
+    const val = parseFloat(groupExpenseAmount.value);
+    groupExpenseParsedAmount = Number.isFinite(val) && val > 0 ? val : null;
+    updateGroupExpenseSummary();
+  });
+}
+if (groupExpenseSubmitBtn) groupExpenseSubmitBtn.addEventListener('click', submitGroupExpense);
+if (groupExpenseMethodSelector) {
+  groupExpenseMethodSelector.querySelectorAll('.split-method-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      groupExpenseMethodSelector.querySelectorAll('.split-method-btn').forEach(b => b.classList.remove('split-method-btn--active'));
+      btn.classList.add('split-method-btn--active');
+      activeGroupExpenseMethod = btn.dataset.method;
+      renderGroupExpenseRows();
+    });
+  });
+}
 
 // ═══════════════════════════════════════════════
 // INIT
@@ -2496,6 +3017,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     friendsListBack.addEventListener('click', () => {
       closeAllOverlays();
       ledgerOverlay.style.display = 'block';
+    });
+  }
+  if (friendsListAddBtn) {
+    friendsListAddBtn.addEventListener('click', () => {
+      addFriendOverlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
     });
   }
 
@@ -3736,7 +4263,7 @@ if (editProfileBack) {
 if (addFriendBack) {
   addFriendBack.addEventListener('click', () => {
     addFriendOverlay.style.display = 'none';
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = 'hidden';
   });
 }
 

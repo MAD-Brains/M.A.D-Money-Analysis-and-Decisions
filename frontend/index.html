@@ -633,6 +633,66 @@
     </div>
   </div>
 
+  <!-- ═══════════ GROUP EXPENSE MODAL ═══════════ -->
+  <div class="modal-backdrop" id="group-expense-backdrop" style="display: none;">
+    <div class="modal" id="group-expense-modal">
+      <div class="modal__header">
+        <h3 class="modal__title" data-i18n="groupDetail.addExpense">Add Group Expense</h3>
+        <button class="modal__close" id="group-expense-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal__form" id="group-expense-form">
+        <div class="modal__field">
+          <label class="modal__label" for="group-expense-amount" data-i18n="field.amountRupee">Amount (₹)</label>
+          <input type="number" id="group-expense-amount" class="modal__input" min="0.01" step="0.01" required />
+        </div>
+        <div class="modal__field">
+          <label class="modal__label" for="group-expense-note" data-i18n="field.note">Note</label>
+          <input type="text" id="group-expense-note" class="modal__input" />
+        </div>
+        <div class="modal__field">
+          <label class="modal__label" for="group-expense-category" data-i18n="field.category">Category</label>
+          <select id="group-expense-category" class="modal__input modal__select">
+            <option value="Food" data-i18n="category.food">🍔 Food</option>
+            <option value="Travel" data-i18n="category.travel">🚗 Travel</option>
+            <option value="Subscription" data-i18n="category.subscription">📺 Subscription</option>
+            <option value="Housing" data-i18n="category.housing">🏠 Housing</option>
+            <option value="Shopping" data-i18n="category.shopping">🛍️ Shopping</option>
+            <option value="Health" data-i18n="category.health">💊 Health</option>
+            <option value="Grocery" data-i18n="category.grocery">🥬 Grocery</option>
+            <option value="Smoking" data-i18n="category.smoking">🚬 Smoking</option>
+            <option value="Alcohol" data-i18n="category.alcohol">🍺 Alcohol</option>
+            <option value="Finance" data-i18n="category.finance">🏦 Finance</option>
+            <option value="Others" data-i18n="category.others">📦 Others</option>
+          </select>
+        </div>
+
+        <div class="modal__field">
+          <label class="modal__label" data-i18n="split.method">Split Method</label>
+          <div class="split-method-selector" id="group-expense-method-selector">
+            <button type="button" class="split-method-btn split-method-btn--active" data-method="equally" data-i18n="splitMethod.equally">Equally</button>
+            <button type="button" class="split-method-btn" data-method="exact" data-i18n="splitMethod.exact">Exact</button>
+            <button type="button" class="split-method-btn" data-method="percentage" data-i18n="splitMethod.percentage">Percentage</button>
+            <button type="button" class="split-method-btn" data-method="shares" data-i18n="splitMethod.shares">Shares</button>
+          </div>
+        </div>
+
+        <div class="split-rows" id="group-expense-rows">
+          <!-- Populated dynamically: one row per group member + "You" row -->
+        </div>
+
+        <div class="split-summary" id="group-expense-summary" style="display:none;">
+          <!-- Live computed breakdown + validation message -->
+        </div>
+
+        <button type="button" class="modal__save" id="group-expense-submit-btn" disabled data-i18n="groupDetail.addExpense">Add Expense</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ GOAL STRETCH CONFIRMATION MODAL ═══════════ -->
   <div class="modal-backdrop" id="goal-confirm-backdrop" style="display: none; z-index: 2100;">
     <div class="modal modal--confirm" style="max-width: 400px;">
@@ -667,17 +727,34 @@
     </div>
 
     <div class="overlay__content">
-      <div class="health-card" style="margin-bottom: 24px; display: block;">
-        <div class="health-card__label" data-i18n="ledger.netBalance">Net Balance</div>
-        <div style="margin-top: 8px;">
-          <span class="health-card__number" id="ledger-total-balance" style="font-size: 2rem;">₹0</span>
-        </div>
-        <div class="health-card__subtitle" id="ledger-total-subtitle" style="margin-top: 8px;" data-i18n="ledger.owesNothing">You owe nothing!</div>
+      <div class="auth-tabs" id="ledger-tabs">
+        <button class="auth-tab active" id="ledger-tab-individual" type="button" data-i18n="ledger.tabIndividual">Individual</button>
+        <button class="auth-tab" id="ledger-tab-groups" type="button" data-i18n="ledger.tabGroups">Groups</button>
       </div>
 
-      <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="ledger.friendsAndBalances">Friends & Balances</h3>
-      <div class="transactions-list" id="ledger-list">
-        <!-- Dynamic ledger cards -->
+      <div id="ledger-individual-view">
+        <div class="health-card" style="margin-bottom: 24px; display: block;">
+          <div class="health-card__label" data-i18n="ledger.netBalance">Net Balance</div>
+          <div style="margin-top: 8px;">
+            <span class="health-card__number" id="ledger-total-balance" style="font-size: 2rem;">₹0</span>
+          </div>
+          <div class="health-card__subtitle" id="ledger-total-subtitle" style="margin-top: 8px;" data-i18n="ledger.owesNothing">You owe nothing!</div>
+        </div>
+
+        <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="ledger.friendsAndBalances">Friends & Balances</h3>
+        <div class="transactions-list" id="ledger-list">
+          <!-- Dynamic ledger cards -->
+        </div>
+      </div>
+
+      <div id="ledger-groups-view" style="display: none;">
+        <button type="button" class="modal__save" id="create-group-btn" style="margin-bottom: 16px;" data-i18n="groups.create">+ Create Group</button>
+        <div class="transactions-list" id="groups-list">
+          <!-- Dynamic group cards -->
+        </div>
+        <div class="txn-row" id="groups-empty" style="display: none; justify-content: center; color: var(--text-tertiary); text-align: center;" data-i18n="groups.empty">
+          No groups yet. Create one to split expenses with multiple friends.
+        </div>
       </div>
     </div>
   </div>
@@ -692,6 +769,9 @@
         </svg>
       </button>
       <h2 class="overlay__title" data-i18n="friends.title">Friends</h2>
+      <button class="overlay__back" id="friends-list-add-btn" data-i18n-title="friend.addTitle" title="Add Friend">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+      </button>
     </div>
 
     <div class="overlay__content">
@@ -728,6 +808,74 @@
         <!-- Dynamic split rows -->
       </div>
       <div id="friend-detail-empty" class="txn-row" style="display: none; justify-content: center; color: var(--text-tertiary);" data-i18n="friendDetail.empty">No shared expenses with this friend yet.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CREATE GROUP OVERLAY ═══════════ -->
+  <div class="overlay" id="create-group-overlay" style="display: none;">
+    <div class="overlay__header">
+      <button class="overlay__back" id="create-group-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="overlay__title" data-i18n="groups.createTitle">Create Group</h2>
+    </div>
+
+    <div class="overlay__content">
+      <div class="modal__field">
+        <label class="modal__label" for="group-name-input" data-i18n="groups.name">Group Name</label>
+        <input type="text" id="group-name-input" class="modal__input" data-i18n-placeholder="groups.namePlaceholder" placeholder="e.g. Goa Trip" />
+      </div>
+
+      <div class="modal__field">
+        <label class="modal__label" data-i18n="groups.selectMembers">Select Members</label>
+        <div class="split-friend-chips" id="group-member-chips">
+          <!-- Populated dynamically: friend chips -->
+        </div>
+        <div class="split-add-friend-inline" id="group-add-friend-inline" style="display: none;">
+          <input type="text" id="group-new-friend-input" class="modal__input" data-i18n-placeholder="split.newFriendPlaceholder" placeholder="Friend's name" />
+          <button type="button" id="group-new-friend-confirm" class="split-chip split-chip--add" data-i18n="split.addChip">Add</button>
+        </div>
+        <button type="button" id="group-add-friend-btn" style="background: none; border: none; color: var(--accent-1); font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 8px;" data-i18n="split.addFriend">+ Add Friend</button>
+      </div>
+
+      <button type="button" class="modal__save" id="create-group-submit-btn" data-i18n="groups.create">+ Create Group</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ GROUP DETAIL OVERLAY ═══════════ -->
+  <div class="overlay" id="group-detail-overlay" style="display: none;">
+    <div class="overlay__header">
+      <button class="overlay__back" id="group-detail-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="overlay__title" id="group-detail-title">Group</h2>
+      <button class="overlay__back" id="group-add-expense-btn" data-i18n-title="groupDetail.addExpense" title="Add Expense">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+
+    <div class="overlay__content">
+      <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="groupDetail.members">Members</h3>
+      <div class="transactions-list" id="group-detail-members" style="margin-bottom: 12px;">
+        <!-- Dynamic member balance rows -->
+      </div>
+      <div class="split-add-friend-inline" id="group-detail-add-member-inline" style="display: none;">
+        <input type="text" id="group-detail-new-member-input" class="modal__input" data-i18n-placeholder="groupDetail.newMemberPlaceholder" placeholder="Friend's name" />
+        <button type="button" id="group-detail-new-member-confirm" class="split-chip split-chip--add" data-i18n="split.addChip">Add</button>
+      </div>
+      <button type="button" id="group-detail-add-member-btn" style="background: none; border: none; color: var(--accent-1); font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 24px;" data-i18n="groupDetail.addMember">+ Add Member</button>
+
+      <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="groupDetail.expenses">Group Expenses</h3>
+      <div class="transactions-list" id="group-detail-expenses" style="display: flex; flex-direction: column; gap: 6px;">
+        <!-- Dynamic expense rows -->
+      </div>
+      <div id="group-detail-expenses-empty" class="txn-row" style="display: none; justify-content: center; color: var(--text-tertiary);" data-i18n="groupDetail.expensesEmpty">No expenses logged for this group yet.</div>
     </div>
   </div>
 
