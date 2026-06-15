@@ -154,9 +154,35 @@ const ledgerList       = document.getElementById('ledger-list');
 const ledgerTotalBal   = document.getElementById('ledger-total-balance');
 const ledgerTotalSub   = document.getElementById('ledger-total-subtitle');
 
+// Friends List DOM (NEW)
+const friendsListBtn     = document.getElementById('friends-list-btn');
+const friendsListOverlay = document.getElementById('friends-list-overlay');
+const friendsListBack    = document.getElementById('friends-list-back');
+const friendsListList    = document.getElementById('friends-list-list');
+const friendsListEmpty   = document.getElementById('friends-list-empty');
+
+// Friend Detail DOM (NEW)
+const friendDetailOverlay = document.getElementById('friend-detail-overlay');
+const friendDetailBack    = document.getElementById('friend-detail-back');
+const friendDetailTitle   = document.getElementById('friend-detail-title');
+const friendDetailBalance = document.getElementById('friend-detail-balance');
+const friendDetailList    = document.getElementById('friend-detail-list');
+const friendDetailEmpty   = document.getElementById('friend-detail-empty');
+
+// Edit Split Modal DOM (NEW)
+const editSplitBackdrop = document.getElementById('edit-split-backdrop');
+const editSplitClose    = document.getElementById('edit-split-close');
+const editSplitAmount   = document.getElementById('edit-split-amount');
+const editSplitSave     = document.getElementById('edit-split-save');
+let currentEditSplitId  = null;
+let currentEditFriendId = null;
+
 // Split Picker DOM (NEW)
 const splitTriggerBtn   = document.getElementById('open-split-picker-btn');
 const splitAddFriendBtn = document.getElementById('split-add-friend-btn');
+const splitAddFriendInline  = document.getElementById('split-add-friend-inline');
+const splitNewFriendInput   = document.getElementById('split-new-friend-input');
+const splitNewFriendConfirm = document.getElementById('split-new-friend-confirm');
 const splitBackdrop     = document.getElementById('split-backdrop');
 const splitClose        = document.getElementById('split-close');
 const splitFriendChips  = document.getElementById('split-friend-chips');
@@ -1071,7 +1097,8 @@ async function fetchLedger() {
       const text = isOwedToYou ? t('ledger.owesYou') : t('ledger.youOwe');
       
       const row = document.createElement('div');
-      row.className = 'txn-row';
+      row.className = 'txn-row txn-row--clickable';
+      row.addEventListener('click', () => openFriendDetail(b.friendId, b.name));
       row.innerHTML = `
         <div class="txn-row__icon" style="background: ${color}1f;">👤</div>
         <div class="txn-row__details">
@@ -1082,7 +1109,7 @@ async function fetchLedger() {
         </div>
         <div class="ledger-row__right">
           <span class="txn-row__amount" style="color: ${color};">₹${Math.abs(net).toLocaleString('en-IN')}</span>
-          <button class="ledger-row__settle-btn" onclick="settleDebt(${b.friendId}, '${escapeAttr(b.name)}', ${Math.abs(net)})">${t('ledger.settleUp')}</button>
+          <button class="ledger-row__settle-btn" onclick="event.stopPropagation(); settleDebt(${b.friendId}, '${escapeAttr(b.name)}', ${Math.abs(net)})">${t('ledger.settleUp')}</button>
         </div>
       `;
       ledgerList.appendChild(row);
@@ -1132,6 +1159,226 @@ async function settleDebt(friendId, name, amount) {
 }
 
 // ═══════════════════════════════════════════════
+// FRIENDS LIST (issue #1)
+// ═══════════════════════════════════════════════
+async function fetchFriendsList() {
+  try {
+    const [ledgerRes, connRes] = await Promise.all([
+      fetch(`${API_BASE}/ledger`),
+      fetch(`${API_BASE}/connections/accepted`),
+    ]);
+    const ledgerData = await ledgerRes.json();
+    const connData = await connRes.json();
+
+    const balances = (ledgerData.success && Array.isArray(ledgerData.balances)) ? ledgerData.balances : [];
+    const connections = (connData.success && Array.isArray(connData.connections)) ? connData.connections : [];
+
+    const rowsByName = new Map();
+
+    balances.forEach(b => {
+      rowsByName.set(b.name.toLowerCase(), {
+        friendId: b.friendId,
+        name: b.name,
+        upiId: b.upiId,
+        netBalance: b.netBalance || 0,
+      });
+    });
+
+    connections.forEach(c => {
+      const name = c.displayName || c.username;
+      const key = name.toLowerCase();
+      if (!rowsByName.has(key)) {
+        rowsByName.set(key, {
+          friendId: null,
+          name,
+          upiId: null,
+          netBalance: 0,
+        });
+      }
+    });
+
+    const rows = [...rowsByName.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+    friendsListList.innerHTML = '';
+    if (rows.length === 0) {
+      friendsListEmpty.style.display = '';
+      return;
+    }
+    friendsListEmpty.style.display = 'none';
+    rows.forEach((row, i) => renderFriendsListRow(row, i));
+  } catch (err) {
+    console.error('fetchFriendsList error:', err);
+  }
+}
+
+function renderFriendsListRow(row, i) {
+  const net = row.netBalance || 0;
+  let color = 'var(--text-secondary)';
+  let text = t('friendDetail.settled');
+  if (net > 0) { color = '#34d399'; text = t('ledger.owesYou'); }
+  else if (net < 0) { color = '#ef4444'; text = t('ledger.youOwe'); }
+
+  const row_el = document.createElement('div');
+  row_el.className = 'txn-row txn-row--clickable';
+  row_el.style.animationDelay = `${i * 0.04}s`;
+  row_el.innerHTML = `
+    <div class="txn-row__icon" style="background: ${color}1f;">👤</div>
+    <div class="txn-row__details">
+      <div class="txn-row__note" style="text-transform: capitalize;">${escapeHtml(row.name)}</div>
+      <div class="txn-row__meta">
+        <span class="txn-row__category" style="color: ${color};">${text}</span>
+      </div>
+    </div>
+    <div class="txn-row__amount" style="color: ${color};">${net !== 0 ? '₹' + Math.abs(net).toLocaleString('en-IN') : ''}</div>
+  `;
+  row_el.addEventListener('click', () => openFriendDetail(row.friendId, row.name));
+  friendsListList.appendChild(row_el);
+}
+
+// ═══════════════════════════════════════════════
+// FRIEND DETAIL (issue #4) + EDIT/REMOVE SPLIT (issue #5)
+// ═══════════════════════════════════════════════
+function openFriendDetail(friendId, name) {
+  friendDetailTitle.textContent = name;
+  friendDetailOverlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  if (friendId == null) {
+    friendDetailList.innerHTML = '';
+    friendDetailList.style.display = 'none';
+    friendDetailEmpty.style.display = 'block';
+    friendDetailEmpty.textContent = t('friendDetail.noSplitsYet');
+    friendDetailBalance.textContent = '0';
+    friendDetailBalance.style.color = '';
+    return;
+  }
+
+  fetchFriendDetail(friendId);
+}
+
+async function fetchFriendDetail(friendId) {
+  try {
+    const res = await fetch(`${API_BASE}/splits/friend/${friendId}`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    friendDetailList.innerHTML = '';
+    if (!data.splits.length) {
+      friendDetailEmpty.style.display = 'block';
+      friendDetailEmpty.textContent = t('friendDetail.empty');
+      friendDetailList.style.display = 'none';
+    } else {
+      friendDetailEmpty.style.display = 'none';
+      friendDetailList.style.display = 'flex';
+      data.splits.forEach((s, i) => {
+        friendDetailList.insertAdjacentHTML('beforeend', renderSplitDetailRow(s, i, friendId));
+      });
+    }
+
+    const net = data.splits.filter(s => !s.isSettled).reduce((sum, s) => sum + s.splitAmount, 0);
+    friendDetailBalance.textContent = net === 0
+      ? t('friendDetail.settled')
+      : `₹${Math.abs(net).toLocaleString('en-IN')} ${net > 0 ? t('ledger.owesYou') : t('ledger.youOwe')}`;
+    friendDetailBalance.style.color = net > 0 ? '#34d399' : (net < 0 ? '#ef4444' : '');
+  } catch (err) {
+    console.error('fetchFriendDetail error:', err);
+  }
+}
+
+function renderSplitDetailRow(split, i, friendId) {
+  const emoji = CATEGORY_EMOJI[split.category] || '📦';
+  const displayNote = split.note || split.category;
+  const settledTag = split.isSettled
+    ? `<span class="txn-row__category" style="color:#34d399;">${t('friendDetail.settled')}</span>`
+    : '';
+  return `
+    <div class="txn-row" id="split-detail-${split.id}" style="animation-delay:${i * 0.04}s">
+      <div class="txn-row__icon txn-row__icon--${split.category}">${emoji}</div>
+      <div class="txn-row__details">
+        <div class="txn-row__note">${escapeHtml(displayNote)}</div>
+        <div class="txn-row__meta">
+          <span class="txn-row__category">${split.date}</span>
+          ${settledTag}
+        </div>
+      </div>
+      <div class="txn-row__amount">₹${split.splitAmount.toLocaleString('en-IN')}</div>
+      <button class="txn-row__delete" onclick="openEditSplitModal(${split.id}, ${split.splitAmount}, ${friendId})" aria-label="${escapeAttr(t('action.edit'))}" title="${escapeAttr(t('action.edit'))}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      </button>
+      <button class="txn-row__delete" onclick="removeSplit(${split.id}, ${friendId})" aria-label="${escapeAttr(t('action.remove'))}" title="${escapeAttr(t('action.remove'))}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+  `;
+}
+
+async function removeSplit(splitId, friendId) {
+  if (!confirm(t('friendDetail.removeConfirm'))) return;
+  try {
+    const res = await fetch(`${API_BASE}/splits/${splitId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(t('toast.splitRemoved'));
+      playSound('success');
+      vibrate([20, 30, 20]);
+      fetchFriendDetail(friendId);
+      fetchLedger();
+      fetchTransactions();
+    } else {
+      showToast(data.error || t('toast.splitRemoveFailed'), true);
+      playSound('error');
+      vibrate(40);
+    }
+  } catch (err) {
+    console.error('removeSplit error:', err);
+    showToast(t('toast.networkError'), true);
+    playSound('error');
+    vibrate(40);
+  }
+}
+
+function openEditSplitModal(splitId, currentAmount, friendId) {
+  currentEditSplitId = splitId;
+  currentEditFriendId = friendId;
+  editSplitAmount.value = currentAmount;
+  editSplitBackdrop.style.display = 'flex';
+}
+
+async function submitEditSplit() {
+  const splitAmount = parseFloat(editSplitAmount.value);
+  if (!Number.isFinite(splitAmount) || splitAmount <= 0) {
+    showToast(t('split.errorAmount'), true);
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/splits/${currentEditSplitId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ splitAmount }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(t('toast.splitUpdated'));
+      playSound('success');
+      vibrate([20, 30, 20]);
+      editSplitBackdrop.style.display = 'none';
+      fetchFriendDetail(currentEditFriendId);
+      fetchLedger();
+      fetchTransactions();
+    } else {
+      showToast(data.error || t('toast.splitUpdateFailed'), true);
+      playSound('error');
+      vibrate(40);
+    }
+  } catch (err) {
+    console.error('submitEditSplit error:', err);
+    showToast(t('toast.networkError'), true);
+    playSound('error');
+    vibrate(40);
+  }
+}
+
+// ═══════════════════════════════════════════════
 // SPLIT PICKER (multi-friend, 4 split methods)
 // ═══════════════════════════════════════════════
 let splitFriendsCache = []; // [{ id, name, upiId }] — also powers text-path autocomplete
@@ -1141,11 +1388,22 @@ let splitParsedAmount = null;
 
 async function fetchFriends() {
   try {
-    const res = await fetch(`${API_BASE}/friends`);
-    const data = await res.json();
-    if (data.success && Array.isArray(data.friends)) {
-      splitFriendsCache = data.friends;
-    }
+    const [friendsRes, connRes] = await Promise.all([
+      fetch(`${API_BASE}/friends`),
+      fetch(`${API_BASE}/connections/accepted`),
+    ]);
+    const friendsData = await friendsRes.json();
+    const connData = await connRes.json();
+
+    const localFriends = (friendsData.success && Array.isArray(friendsData.friends)) ? friendsData.friends : [];
+    const connections = (connData.success && Array.isArray(connData.connections)) ? connData.connections : [];
+
+    const localNamesLower = new Set(localFriends.map(f => f.name.toLowerCase()));
+    const connectionFriends = connections
+      .map(c => ({ name: c.displayName || c.username, upiId: null }))
+      .filter(c => !localNamesLower.has(c.name.toLowerCase()));
+
+    splitFriendsCache = [...localFriends, ...connectionFriends];
   } catch (err) {
     console.error('fetchFriends error:', err);
   }
@@ -1344,6 +1602,22 @@ function resetSplitPicker() {
   splitMethodSelector.querySelectorAll('.split-method-btn').forEach(b => b.classList.remove('split-method-btn--active'));
   const equallyBtn = splitMethodSelector.querySelector('[data-method="equally"]');
   if (equallyBtn) equallyBtn.classList.add('split-method-btn--active');
+
+  if (splitAddFriendInline) splitAddFriendInline.style.display = 'none';
+  if (splitNewFriendInput) splitNewFriendInput.value = '';
+}
+
+function addInlineSplitFriend() {
+  const name = splitNewFriendInput.value.trim();
+  if (!name) return;
+  if (!selectedSplitFriends.some(n => n.toLowerCase() === name.toLowerCase())) {
+    selectedSplitFriends.push(name);
+    renderSplitFriendChips();
+    renderSplitRows();
+    playSound('tap');
+  }
+  splitNewFriendInput.value = '';
+  splitAddFriendInline.style.display = 'none';
 }
 
 function openSplitPicker() {
@@ -1409,12 +1683,15 @@ async function submitSplit() {
 splitTriggerBtn.addEventListener('click', openSplitPicker);
 if (splitAddFriendBtn) {
   splitAddFriendBtn.addEventListener('click', () => {
-    // Hide split picker overlay and show add friend overlay
-    closeSplitPicker();
-    const addFriendOverlay = document.getElementById('add-friend-overlay');
-    if (addFriendOverlay) addFriendOverlay.style.display = 'block';
+    const isOpen = splitAddFriendInline.style.display !== 'none';
+    splitAddFriendInline.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) splitNewFriendInput.focus();
   });
 }
+if (splitNewFriendConfirm) splitNewFriendConfirm.addEventListener('click', addInlineSplitFriend);
+if (splitNewFriendInput) splitNewFriendInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addInlineSplitFriend(); }
+});
 splitClose.addEventListener('click', closeSplitPicker);
 splitBackdrop.addEventListener('click', (e) => {
   if (e.target === splitBackdrop) closeSplitPicker();
@@ -2204,6 +2481,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeAllOverlays();
       setActiveNav('nav-home');
     });
+  }
+
+  // Friends List event listeners
+  if (friendsListBtn) {
+    friendsListBtn.addEventListener('click', () => {
+      closeAllOverlays();
+      friendsListOverlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      fetchFriendsList();
+    });
+  }
+  if (friendsListBack) {
+    friendsListBack.addEventListener('click', () => {
+      closeAllOverlays();
+      ledgerOverlay.style.display = 'block';
+    });
+  }
+
+  // Friend Detail event listeners
+  if (friendDetailBack) {
+    friendDetailBack.addEventListener('click', () => {
+      friendDetailOverlay.style.display = 'none';
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  // Edit Split modal event listeners
+  if (editSplitClose) {
+    editSplitClose.addEventListener('click', () => {
+      editSplitBackdrop.style.display = 'none';
+    });
+  }
+  if (editSplitSave) {
+    editSplitSave.addEventListener('click', submitEditSplit);
   }
 
   // Insights event listeners
