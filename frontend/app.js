@@ -3714,6 +3714,7 @@ if (editIncomeForm) {
         }
         editIncomeOverlay.classList.remove('active');
         fetchHealthScore();
+        fetchInsightsOverview();
       } else {
         showToast(data.error || t('toast.updateFailed'), true);
       }

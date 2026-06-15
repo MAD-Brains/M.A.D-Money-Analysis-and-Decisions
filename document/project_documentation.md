@@ -77,7 +77,10 @@ All transactions are stored in a local SQLite file ([mad.db](file:///d:/Project/
 | `email` | `TEXT` | `NOT NULL UNIQUE` | Unique email address; alternate login identifier. |
 | `passwordHash` | `TEXT` | `NOT NULL` | `bcrypt` hash of the account password — plaintext passwords are never stored. |
 | `displayName` | `TEXT` | `NULL` | Friendly name shown in the profile menu and (in future phases) to linked friends. |
+| `monthlyIncome` | `REAL` | `DEFAULT 0` | The baseline monthly income (renamed to "Monthly Salary" in the user interface). |
+| `language` | `TEXT` | `NOT NULL DEFAULT 'en'` | User's preferred language option ('en', 'hi', 'hinglish'). |
 | `createdAt` | `TEXT` | `NOT NULL DEFAULT (datetime('now', 'localtime'))` | Account creation timestamp. |
+
 
 #### 2. `transactions` Table
 | Column Name | Data Type | Constraint / Default | Description |
@@ -395,6 +398,9 @@ All endpoints are registered under the `/api` prefix on port `3000`. Every route
 | **POST** | `/auth/login` | Authenticate with username **or** email + password; starts a session. | `{ "identifier": "string", "password": "string" }` |
 | **POST** | `/auth/logout` | Destroys the current session. | None |
 | **GET** | `/auth/me` | Returns the logged-in user's profile, or `401` if no session exists. Polled on page load to decide whether to show the app or the login overlay. | None |
+| **PUT** | `/auth/me` | Update the current user's profile display name, email, monthly salary, and language. | `{ "email": "string", "displayName": "string", "monthlyIncome": number, "language": "string" }` |
+| **PUT** | `/auth/password` | Update the user's password securely (hashes it using bcrypt). | `{ "currentPassword": "string", "newPassword": "string" }` |
+| **POST** | `/auth/avatar` | Upload a profile picture as a base64 string. | `{ "avatarBase64": "string" }` |
 | **POST** | `/transactions` | Parse NLP input and insert transaction. Supports optional custom splits. | `{ "input": "string", "splits": [{ "friendName": "string", "amount": number }] }` |
 | **GET** | `/transactions` | Fetch 5 most recent active transactions. | None |
 | **GET** | `/transactions/all` | Fetch all active transactions. | None |
