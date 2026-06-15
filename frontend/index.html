@@ -395,6 +395,27 @@
     </div>
   </div>
 
+  <!-- ═══════════ EDIT SPLIT MODAL ═══════════ -->
+  <div class="modal-backdrop" id="edit-split-backdrop" style="display: none;">
+    <div class="modal" id="edit-split-modal">
+      <div class="modal__header">
+        <h3 class="modal__title" data-i18n="friendDetail.editSplitTitle">Edit Split Amount</h3>
+        <button class="modal__close" id="edit-split-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal__form">
+        <div class="modal__field">
+          <label class="modal__label" for="edit-split-amount" data-i18n="field.amountRupee">Amount (₹)</label>
+          <input type="number" id="edit-split-amount" class="modal__input" min="0.01" step="0.01" required />
+        </div>
+        <button type="button" class="modal__save" id="edit-split-save" data-i18n="friendDetail.saveSplit">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ JARVIS ADVICE OVERLAY ═══════════ -->
   <div class="overlay" id="jarvis-overlay" style="display: none;">
     <div class="overlay__header">
@@ -581,9 +602,12 @@
             <button type="button" id="split-add-friend-btn" style="background: none; border: none; color: var(--accent-1); font-size: 0.85rem; font-weight: 600; cursor: pointer;" data-i18n="split.addFriend">+ Add Friend</button>
           </div>
           <div class="split-friend-chips" id="split-friend-chips">
-            <!-- Populated dynamically: known-friend chips + "+ Add" chip -->
+            <!-- Populated dynamically: known-friend chips (local contacts + connections) -->
           </div>
-
+          <div class="split-add-friend-inline" id="split-add-friend-inline" style="display: none;">
+            <input type="text" id="split-new-friend-input" class="modal__input" data-i18n-placeholder="split.newFriendPlaceholder" placeholder="Friend's name" />
+            <button type="button" id="split-new-friend-confirm" class="split-chip split-chip--add" data-i18n="split.addChip">Add</button>
+          </div>
         </div>
 
         <div class="modal__field" id="split-method-field" style="display:none;">
@@ -637,8 +661,11 @@
         </svg>
       </button>
       <h2 class="overlay__title" data-i18n="ledger.title">👥 Group Ledger</h2>
+      <button class="overlay__back" id="friends-list-btn" data-i18n-title="friends.title" title="Friends">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </button>
     </div>
-    
+
     <div class="overlay__content">
       <div class="health-card" style="margin-bottom: 24px; display: block;">
         <div class="health-card__label" data-i18n="ledger.netBalance">Net Balance</div>
@@ -652,6 +679,55 @@
       <div class="transactions-list" id="ledger-list">
         <!-- Dynamic ledger cards -->
       </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FRIENDS LIST OVERLAY ═══════════ -->
+  <div class="overlay" id="friends-list-overlay" style="display: none;">
+    <div class="overlay__header">
+      <button class="overlay__back" id="friends-list-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="overlay__title" data-i18n="friends.title">Friends</h2>
+    </div>
+
+    <div class="overlay__content">
+      <div class="transactions-list" id="friends-list-list">
+        <!-- Dynamic friend rows -->
+      </div>
+      <div class="txn-row" id="friends-list-empty" style="display: none; justify-content: center; color: var(--text-tertiary); text-align: center;" data-i18n="friends.empty">
+        No friends yet. Add one from the Split Picker.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FRIEND DETAIL OVERLAY ═══════════ -->
+  <div class="overlay" id="friend-detail-overlay" style="display: none;">
+    <div class="overlay__header">
+      <button class="overlay__back" id="friend-detail-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="overlay__title" id="friend-detail-title">Friend</h2>
+    </div>
+
+    <div class="overlay__content">
+      <div class="health-card" style="margin-bottom: 24px; display: block;">
+        <div class="health-card__label" data-i18n="friendDetail.balance">Balance</div>
+        <div style="margin-top: 8px;">
+          <span class="health-card__number" id="friend-detail-balance" style="font-size: 1.6rem;">0</span>
+        </div>
+      </div>
+      <h3 class="chart-section__title" style="margin-bottom: 12px;" data-i18n="friendDetail.splitsTitle">Shared Expenses</h3>
+      <div class="transactions-list" id="friend-detail-list" style="display: flex; flex-direction: column; gap: 6px;">
+        <!-- Dynamic split rows -->
+      </div>
+      <div id="friend-detail-empty" class="txn-row" style="display: none; justify-content: center; color: var(--text-tertiary);" data-i18n="friendDetail.empty">No shared expenses with this friend yet.</div>
     </div>
   </div>
 

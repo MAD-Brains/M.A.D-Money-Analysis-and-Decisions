@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit } = require('../db');
+const { pool, insertTransaction, getRecentTransactions, getAllTransactions, updateTransaction, softDeleteTransaction, getFriendByName, insertFriend, insertSplit, getConnectedUserByName, insertNotification, getUserById } = require('../db');
 const { parseInput } = require('../parser');
 
 /**
@@ -92,6 +92,25 @@ router.post('/', async (req, res) => {
       throw txnErr;
     } finally {
       client.release();
+    }
+
+    // Issue #3: notify connected friends (best-effort, non-blocking for response correctness)
+    for (const { friendName, splitAmount } of splitsToCreate) {
+      try {
+        const connectedUser = await getConnectedUserByName({ userId, name: friendName });
+        if (connectedUser) {
+          const me = await getUserById({ id: userId });
+          const payerName = me?.displayName || me?.username || 'Someone';
+          await insertNotification({
+            userId: connectedUser.userId,
+            type: 'split_added',
+            message: `${payerName} added a split of ₹${splitAmount.toLocaleString('en-IN')} for "${note || category}" with you.`,
+            relatedId: transactionId,
+          });
+        }
+      } catch (notifyErr) {
+        console.error('Split notification error (non-fatal):', notifyErr);
+      }
     }
 
     return res.json({

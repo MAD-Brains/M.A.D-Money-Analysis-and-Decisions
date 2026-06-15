@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  getUserByUsername, 
-  getUserByEmail, 
-  getConnection, 
-  insertConnection, 
-  getPendingRequests, 
+const {
+  getUserByUsername,
+  getUserByEmail,
+  getConnection,
+  insertConnection,
+  getPendingRequests,
   updateConnectionStatus,
+  getAcceptedConnections,
   insertNotification,
   getUserById,
   insertFriend
@@ -69,6 +70,16 @@ router.post('/request', async (req, res) => {
     return res.json({ success: true, message: 'Friend request sent' });
   } catch (err) {
     console.error('POST /connections/request error:', err);
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+router.get('/accepted', async (req, res) => {
+  try {
+    const connections = await getAcceptedConnections({ userId: req.session.userId });
+    return res.json({ success: true, connections });
+  } catch (err) {
+    console.error('GET /connections/accepted error:', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }
 });

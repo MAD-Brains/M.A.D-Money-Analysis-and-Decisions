@@ -588,6 +588,49 @@ async function settleFriendDebts({ friendId }) {
   return { changes: result.rowCount };
 }
 
+async function getFriendById({ id, userId }) {
+  const { rows } = await pool.query(
+    `SELECT id, name, "upiId" FROM friends WHERE id = $1 AND "userId" = $2`,
+    [id, userId]
+  );
+  return rows[0] || null;
+}
+
+async function getFriendSplitDetails({ friendId, userId }) {
+  const { rows } = await pool.query(
+    `SELECT
+       s.id, s."splitAmount", s."isSettled", s."settledDate", s."createdAt",
+       t.id AS "transactionId", t.note, t.category, t.date, t.amount AS "transactionAmount"
+     FROM splits s
+     JOIN transactions t ON t.id = s."transactionId"
+     JOIN friends f ON f.id = s."friendId"
+     WHERE s."friendId" = $1 AND f."userId" = $2 AND t."isIncorrect" = 0
+     ORDER BY t."createdAt" DESC`,
+    [friendId, userId]
+  );
+  return rows;
+}
+
+async function getSplitWithOwnership({ splitId, userId }) {
+  const { rows } = await pool.query(
+    `SELECT s.id, s."transactionId", s."friendId", s."splitAmount", s."isSettled",
+            t."userId", t.amount AS "transactionAmount"
+     FROM splits s
+     JOIN transactions t ON t.id = s."transactionId"
+     WHERE s.id = $1 AND t."userId" = $2`,
+    [splitId, userId]
+  );
+  return rows[0] || null;
+}
+
+async function getSplitsForTransaction({ transactionId }) {
+  const { rows } = await pool.query(
+    `SELECT id, "splitAmount" FROM splits WHERE "transactionId" = $1`,
+    [transactionId]
+  );
+  return rows;
+}
+
 // ─── Auth / Users Queries ───
 
 async function insertUser({ username, email, passwordHash, displayName }) {
@@ -739,6 +782,35 @@ async function updateConnectionStatus({ status, id, addresseeId }) {
   return { changes: result.rowCount };
 }
 
+async function getAcceptedConnections({ userId }) {
+  const { rows } = await pool.query(
+    `SELECT
+       CASE WHEN c."requesterId" = $1 THEN c."addresseeId" ELSE c."requesterId" END AS "userId",
+       u.username, u."displayName", u."avatarUrl"
+     FROM connections c
+     JOIN users u ON u.id = CASE WHEN c."requesterId" = $1 THEN c."addresseeId" ELSE c."requesterId" END
+     WHERE (c."requesterId" = $1 OR c."addresseeId" = $1) AND c.status = 'accepted'
+     ORDER BY u."displayName" ASC, u.username ASC`,
+    [userId]
+  );
+  return rows;
+}
+
+async function getConnectedUserByName({ userId, name }) {
+  const { rows } = await pool.query(
+    `SELECT
+       CASE WHEN c."requesterId" = $1 THEN c."addresseeId" ELSE c."requesterId" END AS "userId",
+       u.username, u."displayName"
+     FROM connections c
+     JOIN users u ON u.id = CASE WHEN c."requesterId" = $1 THEN c."addresseeId" ELSE c."requesterId" END
+     WHERE (c."requesterId" = $1 OR c."addresseeId" = $1) AND c.status = 'accepted'
+       AND (lower(u.username) = lower($2) OR lower(u."displayName") = lower($2))
+     LIMIT 1`,
+    [userId, name]
+  );
+  return rows[0] || null;
+}
+
 async function insertNotification({ userId, type, message, relatedId }) {
   const { rows } = await pool.query(
     `INSERT INTO notifications ("userId", type, message, "relatedId")
@@ -812,6 +884,10 @@ module.exports = {
   insertSplit,
   getLedgerBalances,
   settleFriendDebts,
+  getFriendById,
+  getFriendSplitDetails,
+  getSplitWithOwnership,
+  getSplitsForTransaction,
   // Users / Auth
   insertUser,
   getUserByEmail,
@@ -830,6 +906,8 @@ module.exports = {
   getConnection,
   getPendingRequests,
   updateConnectionStatus,
+  getAcceptedConnections,
+  getConnectedUserByName,
   insertNotification,
   getUnreadNotifications,
   markNotificationsRead,

@@ -16,6 +16,7 @@ const ledgerRoutes = require('./routes/ledger');
 const friendRoutes = require('./routes/friends');
 const connectionsRoutes = require('./routes/connections');
 const notificationsRoutes = require('./routes/notifications');
+const splitsRoutes = require('./routes/splits');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -78,6 +79,7 @@ app.use('/api/ledger', requireAuth, ledgerRoutes);
 app.use('/api/friends', requireAuth, friendRoutes);
 app.use('/api/connections', requireAuth, connectionsRoutes);
 app.use('/api/notifications', requireAuth, notificationsRoutes);
+app.use('/api/splits', requireAuth, splitsRoutes);
 
 // Fallback: serve index.html for any non-API route (local dev only)
 if (!process.env.FRONTEND_URL) {

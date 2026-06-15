@@ -63,6 +63,7 @@ const TRANSLATIONS = {
     'quicklog.title': 'Quick Log:',
     'action.split': '🤝 Split',
     'action.remove': 'Remove',
+    'action.edit': 'Edit',
     'action.removeEntry': 'Remove this entry',
     'action.accept': 'Accept',
 
@@ -207,6 +208,8 @@ const TRANSLATIONS = {
     'split.with': 'Split with',
     'split.addFriend': '+ Add Friend',
     'split.addButton': 'Add Split',
+    'split.newFriendPlaceholder': "Friend's name",
+    'split.addChip': 'Add',
     'split.errorAmount': 'Enter a valid ₹ amount for each friend',
     'split.errorPercentage': 'Enter a valid percentage for each friend',
     'split.errorPercentageOver100': 'Percentages add up to more than 100%',
@@ -233,6 +236,20 @@ const TRANSLATIONS = {
     'ledger.inDebt': 'Overall, you are in debt by ₹{amount}! 🚨',
     'ledger.balanced': 'Books are perfectly balanced. ⚖️',
     'ledger.settleConfirm': 'Mark ₹{amount} as settled with {name}? This will log an income transaction.',
+
+    // friends
+    'friends.title': 'Friends',
+    'friends.empty': 'No friends yet. Add one from the Split Picker.',
+
+    // friend detail
+    'friendDetail.balance': 'Balance',
+    'friendDetail.splitsTitle': 'Shared Expenses',
+    'friendDetail.empty': 'No shared expenses with this friend yet.',
+    'friendDetail.settled': 'Settled',
+    'friendDetail.noSplitsYet': 'No shared expenses with this friend yet.',
+    'friendDetail.editSplitTitle': 'Edit Split Amount',
+    'friendDetail.saveSplit': 'Save Changes',
+    'friendDetail.removeConfirm': 'Remove this split? The amount will be added back to your share.',
 
     // settings
     'settings.financialProfile': 'Financial Profile',
@@ -291,6 +308,10 @@ const TRANSLATIONS = {
     'toast.insightsDetailsFailed': 'Failed to load insights details',
     'toast.settledUp': 'Settled up with {name}!',
     'toast.settleFailed': 'Failed to settle debt',
+    'toast.splitRemoved': 'Split removed',
+    'toast.splitRemoveFailed': 'Failed to remove split',
+    'toast.splitUpdated': 'Split updated',
+    'toast.splitUpdateFailed': 'Failed to update split',
     'toast.addAmountFirst': 'Add an amount first, then split it',
     'toast.typeExpenseFirst': 'Type the expense first',
     'toast.splitFailed': 'Split failed',
@@ -373,6 +394,7 @@ const TRANSLATIONS = {
     'quicklog.title': 'क्विक लॉग:',
     'action.split': '🤝 स्प्लिट',
     'action.remove': 'हटाएं',
+    'action.edit': 'संपादित करें',
     'action.removeEntry': 'यह एंट्री हटाएं',
     'action.accept': 'स्वीकारें',
 
@@ -502,6 +524,8 @@ const TRANSLATIONS = {
     'split.with': 'इनके साथ बांटें',
     'split.addFriend': '+ दोस्त जोड़ें',
     'split.addButton': 'स्प्लिट जोड़ें',
+    'split.newFriendPlaceholder': 'दोस्त का नाम',
+    'split.addChip': 'जोड़ें',
     'split.errorAmount': 'हर दोस्त के लिए मान्य ₹ राशि दर्ज करें',
     'split.errorPercentage': 'हर दोस्त के लिए मान्य प्रतिशत दर्ज करें',
     'split.errorPercentageOver100': 'प्रतिशत का योग 100% से अधिक है',
@@ -526,6 +550,20 @@ const TRANSLATIONS = {
     'ledger.inDebt': 'कुल मिलाकर, आप पर ₹{amount} का कर्ज़ है! 🚨',
     'ledger.balanced': 'हिसाब बिल्कुल बराबर है। ⚖️',
     'ledger.settleConfirm': '{name} के साथ ₹{amount} चुकता हुआ मार्क करें? इससे एक आय लेनदेन दर्ज होगा।',
+
+    // friends
+    'friends.title': 'दोस्त',
+    'friends.empty': 'अभी तक कोई दोस्त नहीं है। स्प्लिट पिकर से एक जोड़ें।',
+
+    // friend detail
+    'friendDetail.balance': 'शेष राशि',
+    'friendDetail.splitsTitle': 'साझा खर्च',
+    'friendDetail.empty': 'इस दोस्त के साथ अभी तक कोई साझा खर्च नहीं है।',
+    'friendDetail.settled': 'चुकता',
+    'friendDetail.noSplitsYet': 'इस दोस्त के साथ अभी तक कोई साझा खर्च नहीं है।',
+    'friendDetail.editSplitTitle': 'स्प्लिट राशि संपादित करें',
+    'friendDetail.saveSplit': 'बदलाव सहेजें',
+    'friendDetail.removeConfirm': 'इस स्प्लिट को हटाएं? राशि आपके हिस्से में वापस जोड़ दी जाएगी।',
 
     'settings.financialProfile': 'वित्तीय प्रोफ़ाइल',
     'settings.monthlyIncome': 'मासिक आय',
@@ -578,6 +616,10 @@ const TRANSLATIONS = {
     'toast.insightsDetailsFailed': 'इनसाइट्स विवरण लोड करने में विफल',
     'toast.settledUp': '{name} के साथ हिसाब चुकता हो गया!',
     'toast.settleFailed': 'कर्ज़ चुकाने में विफल',
+    'toast.splitRemoved': 'स्प्लिट हटाया गया',
+    'toast.splitRemoveFailed': 'स्प्लिट हटाने में विफल',
+    'toast.splitUpdated': 'स्प्लिट अपडेट किया गया',
+    'toast.splitUpdateFailed': 'स्प्लिट अपडेट करने में विफल',
     'toast.addAmountFirst': 'पहले राशि जोड़ें, फिर इसे बांटें',
     'toast.typeExpenseFirst': 'पहले खर्च टाइप करें',
     'toast.splitFailed': 'स्प्लिट विफल',
@@ -660,6 +702,7 @@ const TRANSLATIONS = {
     'quicklog.title': 'Quick Log:',
     'action.split': '🤝 Split',
     'action.remove': 'Hatao',
+    'action.edit': 'Edit karo',
     'action.removeEntry': 'Galat entry? Hatao',
     'action.accept': 'Accept karo',
 
@@ -789,6 +832,8 @@ const TRANSLATIONS = {
     'split.with': 'Kiske saath split karna hai',
     'split.addFriend': '+ Friend Add karo',
     'split.addButton': 'Split Add karo',
+    'split.newFriendPlaceholder': 'Friend ka naam',
+    'split.addChip': 'Add karo',
     'split.errorAmount': 'Har friend ke liye valid ₹ amount daalo',
     'split.errorPercentage': 'Har friend ke liye valid percentage daalo',
     'split.errorPercentageOver100': 'Percentages ka total 100% se zyada ho gaya',
@@ -813,6 +858,20 @@ const TRANSLATIONS = {
     'ledger.inDebt': 'Overall, tere upar ₹{amount} ka karz hai! 🚨',
     'ledger.balanced': 'Hisaab bilkul balance hai. ⚖️',
     'ledger.settleConfirm': '₹{amount} {name} ke saath settle mark karu? Isse ek income transaction log hoga.',
+
+    // friends
+    'friends.title': 'Friends',
+    'friends.empty': 'Abhi tak koi friend nahi hai. Split Picker se add karo.',
+
+    // friend detail
+    'friendDetail.balance': 'Balance',
+    'friendDetail.splitsTitle': 'Shared Expenses',
+    'friendDetail.empty': 'Is friend ke saath abhi tak koi shared expense nahi hai.',
+    'friendDetail.settled': 'Settled',
+    'friendDetail.noSplitsYet': 'Is friend ke saath abhi tak koi shared expense nahi hai.',
+    'friendDetail.editSplitTitle': 'Split Amount Edit karo',
+    'friendDetail.saveSplit': 'Changes Save karo',
+    'friendDetail.removeConfirm': 'Ye split hatau? Amount tumhare share me wapas add ho jayega.',
 
     'settings.financialProfile': 'Financial Profile',
     'settings.monthlyIncome': 'Monthly Income',
@@ -865,6 +924,10 @@ const TRANSLATIONS = {
     'toast.insightsDetailsFailed': 'Insights details load nahi hue',
     'toast.settledUp': '{name} ke saath settle ho gaya!',
     'toast.settleFailed': 'Debt settle nahi hua',
+    'toast.splitRemoved': 'Split hata diya',
+    'toast.splitRemoveFailed': 'Split hatane me fail ho gaya',
+    'toast.splitUpdated': 'Split update ho gaya',
+    'toast.splitUpdateFailed': 'Split update nahi hua',
     'toast.addAmountFirst': 'Pehle amount daalo, phir split karo',
     'toast.typeExpenseFirst': 'Pehle expense type karo',
     'toast.splitFailed': 'Split fail ho gaya',

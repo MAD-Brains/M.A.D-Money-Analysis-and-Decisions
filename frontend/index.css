@@ -757,6 +757,11 @@ body {
 .txn-row--clickable { cursor: pointer; }
 .txn-row--clickable:active { transform: scale(0.98); }
 
+/* Friend Detail rows: always show action buttons (no hover-reveal on touch) */
+#friend-detail-list .txn-row__delete {
+  opacity: 1;
+}
+
 /* ─── Ledger Row (Split History) ─── */
 .ledger-row__right {
   display: flex;
@@ -1088,6 +1093,17 @@ body {
 
 .split-chip--add {
   border-style: dashed;
+}
+
+.split-add-friend-inline {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.split-add-friend-inline .modal__input {
+  flex: 1;
 }
 
 .split-method-selector {
