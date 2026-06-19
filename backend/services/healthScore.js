@@ -21,13 +21,13 @@ const {
   getCategoryBreakdown,
   getActiveDays,
   getTransactionCount,
-  getUserById
+  getUserById,
+  getAllTransactions,
+  getActiveGoals
 } = require('../db');
 
-// Categories considered "essential" (Needs)
-const ESSENTIAL_CATEGORIES = ['Housing', 'Health', 'Travel', 'Subscription'];
-// Categories considered "non-essential" (Wants)
-const NON_ESSENTIAL_CATEGORIES = ['Food', 'Shopping', 'Smoking', 'Alcohol', 'Others'];
+// Categories considered "discretionary" (Wants / avoidable)
+const DISCRETIONARY_CATEGORIES = ['Food', 'Shopping', 'Smoking', 'Alcohol', 'Subscription', 'Others'];
 
 /**
  * Calculate the Money Health Score
@@ -43,49 +43,108 @@ async function calculateHealthScore(userId) {
   // Days elapsed in current month (today's date)
   const today = new Date();
   const dayOfMonth = today.getDate();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  // Retrieve monthly salary from user profile
+  const user = await getUserById({ id: userId });
+  const monthlyIncome = parseFloat(user && user.monthlyIncome) || 0;
+  const hasSalaryData = monthlyIncome > 0;
+
+  // Retrieve all transactions to scan for additional random incomes and fine-grain expenses
+  const allTxns = await getAllTransactions({ userId });
+  const currentMonthTxns = allTxns.filter(t => {
+    const d = new Date(t.createdAt);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+
+  // Retrieve active savings goals
+  const goals = await getActiveGoals({ userId });
+  const activeHighPriorityGoals = goals.filter(g => g.priority === 3 && g.isCompleted === 0);
+  const hasHighPriorityGoal = activeHighPriorityGoals.length > 0;
+
+  let necessaryExpense = 0;
+  let discretionaryExpense = 0;
+  let investments = 0;
+  let loggedSalary = 0;
+  let additionalIncome = 0;
+
+  for (const tx of currentMonthTxns) {
+    const amount = parseFloat(tx.amount) || 0;
+    if (tx.type === 'income') {
+      const note = tx.note ? tx.note.toLowerCase() : '';
+      const isSalaryNote = note.includes('salary');
+      const isSalaryAmount = Math.abs(amount - monthlyIncome) < 0.01;
+      if ((isSalaryNote || isSalaryAmount) && loggedSalary === 0 && monthlyIncome > 0) {
+        loggedSalary = amount;
+      } else {
+        additionalIncome += amount;
+      }
+    } else {
+      // expense
+      const category = tx.category;
+      const note = tx.note ? tx.note.toLowerCase() : '';
+
+      if (category === 'Finance') {
+        const isInvestment = note.includes('sip') || 
+                             note.includes('mutual') || 
+                             note.includes('stock') || 
+                             note.includes('share') || 
+                             note.includes('gold') || 
+                             note.includes('investment');
+        if (isInvestment) {
+          investments += amount;
+        } else {
+          necessaryExpense += amount;
+        }
+      } else if (DISCRETIONARY_CATEGORIES.includes(category)) {
+        discretionaryExpense += amount;
+      } else {
+        necessaryExpense += amount;
+      }
+    }
+  }
+
+  const totalIncome = Math.max(loggedSalary, monthlyIncome) + additionalIncome;
+  const totalExpense = necessaryExpense + discretionaryExpense;
 
   // ─── No data at all? Return starter score ───
   if (totalTransactions === 0 || parseInt(totalTransactions, 10) === 0) {
     return {
       score: 50,
       breakdown: {
-        savingsRate: { score: 50, weight: 35 },
-        diversity: { score: 50, weight: 20 },
-        consistency: { score: 50, weight: 25 },
-        expenseControl: { score: 50, weight: 20 },
-        budgetDiscipline: { score: 50, weight: 0, active: false },
+        savingsRate: { score: 50, weight: (hasSalaryData || hasHighPriorityGoal) ? 30 : 35 },
+        diversity: { score: 50, weight: (hasSalaryData || hasHighPriorityGoal) ? 15 : 20 },
+        consistency: { score: 50, weight: (hasSalaryData || hasHighPriorityGoal) ? 20 : 25 },
+        expenseControl: { score: 50, weight: (hasSalaryData || hasHighPriorityGoal) ? 15 : 20 },
+        budgetDiscipline: { score: 50, weight: (hasSalaryData || hasHighPriorityGoal) ? 20 : 0, active: (hasSalaryData || hasHighPriorityGoal) },
       },
       subtitle: 'Abhi koi entry nahi hai, start kar! 📝',
     };
   }
 
-  const { totalIncome: loggedIncome, totalExpense } = totals;
-
-  // Monthly Salary set in profile — auto-populates as baseline income
-  // when no (or less) income has been logged for the month yet
-  const user = await getUserById({ id: userId });
-  const monthlyIncome = parseFloat(user && user.monthlyIncome) || 0;
-  const hasSalaryData = monthlyIncome > 0;
-  const totalIncome = Math.max(parseFloat(loggedIncome) || 0, monthlyIncome);
-
-  // Find investment total to adjust savings rate
-  let financeTotal = 0;
-  for (const cat of categories) {
-    if (cat.category === 'Finance') {
-      financeTotal += parseFloat(cat.total) || 0;
-    }
+  // ─── Income entered but no expense? Return 100 ───
+  if (totalIncome > 0 && totalExpense === 0) {
+    return {
+      score: 100,
+      breakdown: {
+        savingsRate: { score: 100, weight: (hasSalaryData || hasHighPriorityGoal) ? 30 : 35 },
+        diversity: { score: 100, weight: (hasSalaryData || hasHighPriorityGoal) ? 15 : 20 },
+        consistency: { score: 100, weight: (hasSalaryData || hasHighPriorityGoal) ? 20 : 25 },
+        expenseControl: { score: 100, weight: (hasSalaryData || hasHighPriorityGoal) ? 15 : 20 },
+        budgetDiscipline: { score: 100, weight: (hasSalaryData || hasHighPriorityGoal) ? 20 : 0, active: (hasSalaryData || hasHighPriorityGoal) },
+      },
+      subtitle: 'Wah! Income hai aur koi kharcha nahi. 100/100 score! 🤑',
+    };
   }
 
-  // Adjusted expense excludes Finance investments (which are savings)
-  const adjustedExpense = Math.max(0, totalExpense - financeTotal);
-  const totalSavings = Math.max(0, totalIncome - adjustedExpense);
-
   // ═══════════════════════════════════════
-  // 1. SAVINGS RATE (35%)
+  // 1. SAVINGS RATE (35% or 30% with salary/goals)
   // ═══════════════════════════════════════
   let savingsScore = 50; // default if no income
   if (totalIncome > 0) {
-    const savingsRate = totalSavings / totalIncome;
+    // Basic necessary expenses do not reduce the savings rate score.
+    const savingsRate = (totalIncome - discretionaryExpense) / totalIncome;
     // 20% savings = 100 score, 0% = 40, negative = 0-30
     if (savingsRate >= 0.20) {
       savingsScore = 100;
@@ -94,22 +153,20 @@ async function calculateHealthScore(userId) {
     } else if (savingsRate >= 0) {
       savingsScore = 40 + (savingsRate / 0.10) * 30;
     } else {
-      // Negative savings (overspending)
+      // Negative savings (overspending on discretionary)
       savingsScore = Math.max(0, 30 + savingsRate * 100);
     }
-  } else if (adjustedExpense > 0) {
-    // Only expenses, no income logged
+  } else if (discretionaryExpense > 0) {
+    // Only discretionary expenses, no income logged
     savingsScore = 30;
   }
 
   // ═══════════════════════════════════════
-  // 2. SPENDING DIVERSITY (20%)
+  // 2. SPENDING DIVERSITY (20% or 15% with salary/goals)
   // ═══════════════════════════════════════
-  // Count categories excluding Finance and Income
   const activeExpenseCategories = categories.filter(c => c.category !== 'Finance' && c.category !== 'Income');
   const numCategories = activeExpenseCategories.length;
   // More categories = better (shows awareness of where money goes)
-  // 1 category = 30, 2 = 50, 3 = 70, 4+ = 85-100
   let diversityScore;
   if (numCategories === 0) {
     diversityScore = 50;
@@ -124,9 +181,8 @@ async function calculateHealthScore(userId) {
   }
 
   // ═══════════════════════════════════════
-  // 3. CONSISTENCY (25%)
+  // 3. CONSISTENCY (25% or 20% with salary/goals)
   // ═══════════════════════════════════════
-  // What % of days in this month has user tracked?
   const trackingRate = dayOfMonth > 0 ? activeDays / dayOfMonth : 0;
   let consistencyScore;
   if (trackingRate >= 0.8) {
@@ -142,25 +198,13 @@ async function calculateHealthScore(userId) {
   }
 
   // ═══════════════════════════════════════
-  // 4. EXPENSE CONTROL (20%)
+  // 4. EXPENSE CONTROL (20% or 15% with salary/goals)
   // ═══════════════════════════════════════
   let controlScore = 50;
-  const totalControlSpend = adjustedExpense;
-  if (totalControlSpend > 0 && activeExpenseCategories.length > 0) {
-    let essentialSpend = 0;
-    let nonEssentialSpend = 0;
-
-    for (const cat of activeExpenseCategories) {
-      if (ESSENTIAL_CATEGORIES.includes(cat.category)) {
-        essentialSpend += parseFloat(cat.total) || 0;
-      } else {
-        nonEssentialSpend += parseFloat(cat.total) || 0;
-      }
-    }
-
-    const essentialRatio = essentialSpend / totalControlSpend;
-    // More essential spend = better control
-    // 60%+ essential = 90-100, 40-60% = 60-85, <40% = 30-55
+  const totalControlSpend = necessaryExpense + discretionaryExpense;
+  if (totalControlSpend > 0) {
+    const essentialRatio = necessaryExpense / totalControlSpend;
+    // More necessary spend vs discretionary = better control
     if (essentialRatio >= 0.6) {
       controlScore = 90 + (essentialRatio - 0.6) / 0.4 * 10;
     } else if (essentialRatio >= 0.4) {
@@ -171,34 +215,50 @@ async function calculateHealthScore(userId) {
   }
 
   // ═══════════════════════════════════════
-  // 5. BUDGET DISCIPLINE — Salary Aware (0% / 20% with salary)
+  // 5. BUDGET/GOAL DISCIPLINE (0% or 20% with salary/goals)
   // ═══════════════════════════════════════
   let budgetScore = 50;
-  if (hasSalaryData) {
-    const expenseRatio = adjustedExpense / monthlyIncome;
-    if (expenseRatio <= 0.50) {
-      // Under budget king — spending less than half salary
-      budgetScore = 95 + (0.50 - expenseRatio) / 0.50 * 5;
-    } else if (expenseRatio <= 0.70) {
-      // Healthy spending
-      budgetScore = 75 + (0.70 - expenseRatio) / 0.20 * 20;
-    } else if (expenseRatio <= 0.85) {
-      // Getting tight
-      budgetScore = 55 + (0.85 - expenseRatio) / 0.15 * 20;
-    } else if (expenseRatio <= 1.00) {
-      // Paycheck-to-paycheck
-      budgetScore = 35 + (1.00 - expenseRatio) / 0.15 * 20;
+  const scoreActiveDiscipline = hasSalaryData || hasHighPriorityGoal;
+
+  if (hasHighPriorityGoal) {
+    // If a high-priority goal is active, penalize excessive discretionary spending
+    if (totalIncome > 0) {
+      const discretionaryRatio = discretionaryExpense / totalIncome;
+      if (discretionaryRatio <= 0.15) {
+        budgetScore = 100;
+      } else if (discretionaryRatio <= 0.30) {
+        budgetScore = 100 - ((discretionaryRatio - 0.15) / 0.15) * 60;
+      } else {
+        budgetScore = Math.max(0, 40 - ((discretionaryRatio - 0.30) / 0.20) * 40);
+      }
     } else {
-      // Overspending vs salary
-      budgetScore = Math.max(0, 35 - (expenseRatio - 1.0) * 50);
+      if (discretionaryExpense <= 2000) {
+        budgetScore = 100;
+      } else if (discretionaryExpense <= 5000) {
+        budgetScore = 100 - ((discretionaryExpense - 2000) / 3000) * 60;
+      } else {
+        budgetScore = Math.max(0, 40 - ((discretionaryExpense - 5000) / 5000) * 40);
+      }
     }
-    budgetScore = Math.max(0, Math.min(100, budgetScore));
+  } else if (hasSalaryData) {
+    const expenseRatio = discretionaryExpense / monthlyIncome;
+    if (expenseRatio <= 0.20) {
+      budgetScore = 100;
+    } else if (expenseRatio <= 0.40) {
+      budgetScore = 80 + ((0.40 - expenseRatio) / 0.20) * 20;
+    } else if (expenseRatio <= 0.60) {
+      budgetScore = 55 + ((0.60 - expenseRatio) / 0.20) * 25;
+    } else if (expenseRatio <= 0.80) {
+      budgetScore = 35 + ((0.80 - expenseRatio) / 0.20) * 20;
+    } else {
+      budgetScore = Math.max(0, 35 - (expenseRatio - 0.80) * 50);
+    }
   }
 
   // ═══════════════════════════════════════
   // FINAL WEIGHTED SCORE
   // ═══════════════════════════════════════
-  const score = hasSalaryData
+  const score = scoreActiveDiscipline
     ? Math.round(
         savingsScore * 0.30 +
         diversityScore * 0.15 +
@@ -222,19 +282,19 @@ async function calculateHealthScore(userId) {
     consistencyScore,
     controlScore,
   };
-  if (hasSalaryData) {
+  if (scoreActiveDiscipline) {
     subtitleFactors.budgetScore = budgetScore;
   }
-  const subtitle = generateSubtitle(clampedScore, subtitleFactors);
+  const subtitle = generateSubtitle(clampedScore, subtitleFactors, hasHighPriorityGoal);
 
   return {
     score: clampedScore,
     breakdown: {
-      savingsRate: { score: Math.round(savingsScore), weight: hasSalaryData ? 30 : 35 },
-      diversity: { score: Math.round(diversityScore), weight: hasSalaryData ? 15 : 20 },
-      consistency: { score: Math.round(consistencyScore), weight: hasSalaryData ? 20 : 25 },
-      expenseControl: { score: Math.round(controlScore), weight: hasSalaryData ? 15 : 20 },
-      budgetDiscipline: { score: Math.round(budgetScore), weight: hasSalaryData ? 20 : 0, active: hasSalaryData },
+      savingsRate: { score: Math.round(savingsScore), weight: scoreActiveDiscipline ? 30 : 35 },
+      diversity: { score: Math.round(diversityScore), weight: scoreActiveDiscipline ? 15 : 20 },
+      consistency: { score: Math.round(consistencyScore), weight: scoreActiveDiscipline ? 20 : 25 },
+      expenseControl: { score: Math.round(controlScore), weight: scoreActiveDiscipline ? 15 : 20 },
+      budgetDiscipline: { score: Math.round(budgetScore), weight: scoreActiveDiscipline ? 20 : 0, active: scoreActiveDiscipline },
     },
     subtitle,
   };
@@ -243,7 +303,7 @@ async function calculateHealthScore(userId) {
 /**
  * Generate a contextual Hinglish subtitle based on score
  */
-function generateSubtitle(score, factors) {
+function generateSubtitle(score, factors, hasHighPriorityGoal) {
   const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   if (score >= 85) {
@@ -291,7 +351,11 @@ function generateSubtitle(score, factors) {
         'Wants vs Needs ki ladai me Needs ko jitna zaroori hai! 🛑',
         'Bhai discretionary kharche pocket khaali kar denge, control kar! 🪓'
       ],
-      budgetScore: [
+      budgetScore: hasHighPriorityGoal ? [
+        'Bhai, high priority savings goal active hai! Swiggy, shopping aur daaru/sutta band kar 🎯',
+        'Discretionary kharche cut down kar, goal achieve karna hai na? 💸',
+        'Savings goal ke liye extra bacha, discretionary spending rok de abhi! 🛑'
+      ] : [
         'Salary ke against kharcha zyada ho raha hai, budget tight kar 💳',
         'Mahine ke end tak salary tikni chahiye, abhi se control kar! 📆',
         'Apni salary ka ek fixed % hi kharch karne ka rule bana le 🎯'

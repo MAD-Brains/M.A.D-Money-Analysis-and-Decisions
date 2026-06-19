@@ -57,28 +57,44 @@ const originalGetTotals = dbMock.getCurrentMonthTotals;
 const originalGetBreakdown = dbMock.getCategoryBreakdown;
 const originalGetActiveDays = dbMock.getActiveDays;
 const originalGetCount = dbMock.getTransactionCount;
+const originalGetUserById = dbMock.getUserById;
+const originalGetAllTransactions = dbMock.getAllTransactions;
+const originalGetActiveGoals = dbMock.getActiveGoals;
 
-test('Health Score - starter score when no transactions exist', () => {
-  dbMock.getTransactionCount = { get: () => ({ count: 0 }) };
+test('Health Score - starter score when no transactions exist', async () => {
+  dbMock.getTransactionCount = () => Promise.resolve({ count: 0 });
+  dbMock.getUserById = () => Promise.resolve({ monthlyIncome: 0 });
+  dbMock.getAllTransactions = () => Promise.resolve([]);
+  dbMock.getActiveGoals = () => Promise.resolve([]);
+  dbMock.getCurrentMonthTotals = () => Promise.resolve({ totalIncome: 0, totalExpense: 0 });
+  dbMock.getCategoryBreakdown = () => Promise.resolve([]);
+  dbMock.getActiveDays = () => Promise.resolve({ activeDays: 0 });
   
   delete require.cache[require.resolve('../backend/services/healthScore')];
   const { calculateHealthScore } = require('../backend/services/healthScore');
   
-  const hs = calculateHealthScore(1);
+  const hs = await calculateHealthScore(1);
   assert.equal(hs.score, 50);
   assert.match(hs.subtitle, /start kar/);
 });
 
-test('Health Score - calculation with standard numbers', () => {
-  dbMock.getTransactionCount = { get: () => ({ count: 5 }) };
-  dbMock.getCurrentMonthTotals = { get: () => ({ totalIncome: 10000, totalExpense: 4000 }) };
-  dbMock.getCategoryBreakdown = { all: () => [{ category: 'Food', total: 2000 }, { category: 'Housing', total: 2000 }] };
-  dbMock.getActiveDays = { get: () => ({ activeDays: 15 }) };
+test('Health Score - calculation with standard numbers', async () => {
+  dbMock.getTransactionCount = () => Promise.resolve({ count: 5 });
+  dbMock.getCurrentMonthTotals = () => Promise.resolve({ totalIncome: 10000, totalExpense: 4000 });
+  dbMock.getCategoryBreakdown = () => Promise.resolve([{ category: 'Food', total: 2000 }, { category: 'Housing', total: 2000 }]);
+  dbMock.getActiveDays = () => Promise.resolve({ activeDays: 15 });
+  dbMock.getUserById = () => Promise.resolve({ monthlyIncome: 10000 });
+  dbMock.getAllTransactions = () => Promise.resolve([
+    { amount: 10000, type: 'income', category: 'Income', note: 'salary', createdAt: new Date().toISOString() },
+    { amount: 2000, type: 'expense', category: 'Food', note: 'eating out', createdAt: new Date().toISOString() },
+    { amount: 2000, type: 'expense', category: 'Housing', note: 'rent', createdAt: new Date().toISOString() }
+  ]);
+  dbMock.getActiveGoals = () => Promise.resolve([]);
   
   delete require.cache[require.resolve('../backend/services/healthScore')];
   const { calculateHealthScore } = require('../backend/services/healthScore');
   
-  const hs = calculateHealthScore(1);
+  const hs = await calculateHealthScore(1);
   assert.ok(hs.score >= 0 && hs.score <= 100);
   assert.ok(hs.breakdown.savingsRate.score > 0);
   assert.equal(typeof hs.subtitle, 'string');
@@ -89,14 +105,17 @@ dbMock.getCurrentMonthTotals = originalGetTotals;
 dbMock.getCategoryBreakdown = originalGetBreakdown;
 dbMock.getActiveDays = originalGetActiveDays;
 dbMock.getTransactionCount = originalGetCount;
+dbMock.getUserById = originalGetUserById;
+dbMock.getAllTransactions = originalGetAllTransactions;
+dbMock.getActiveGoals = originalGetActiveGoals;
 
 // ─── 3. Database Integrations (Isolated Clean Testing Database) ───
-test('Database Integration Tests', async (t) => {
+test('Database Integration Tests', { skip: !process.env.DATABASE_URL }, async (t) => {
   const walFile = testDbFile + '-wal';
   const shmFile = testDbFile + '-shm';
 
   // Cleanup leftover files from previous crashed runs
-  dbMock.db.close();
+  if (dbMock.db && typeof dbMock.db.close === 'function') dbMock.db.close();
   if (fs.existsSync(testDbFile)) fs.unlinkSync(testDbFile);
   if (fs.existsSync(walFile)) fs.unlinkSync(walFile);
   if (fs.existsSync(shmFile)) fs.unlinkSync(shmFile);
@@ -207,8 +226,10 @@ test('Database Integration Tests', async (t) => {
 
   } finally {
     // Safely close connection
-    testDb.db.close();
-    dbMock.db.close();
+    if (testDb.db && typeof testDb.db.close === 'function') testDb.db.close();
+    if (dbMock.db && typeof dbMock.db.close === 'function') dbMock.db.close();
+    if (testDb.pool && typeof testDb.pool.end === 'function') await testDb.pool.end();
+    if (dbMock.pool && typeof dbMock.pool.end === 'function') await dbMock.pool.end();
     
     // Cleanup files
     if (fs.existsSync(testDbFile)) fs.unlinkSync(testDbFile);
