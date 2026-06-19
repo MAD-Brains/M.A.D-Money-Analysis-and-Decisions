@@ -221,9 +221,11 @@ Computed in [healthScore.js](file:///d:/Project/MAD/M.A.D-Money-Analysis-and-Dec
 1. **Savings Rate ($S$) — 35% / 30% Weight**:
    * Designed to protect necessary expenses: Basic necessary expenses (rent, groceries, utilities, travel, EMIs) do not decrease the score.
    * Calculated as: $\frac{\text{Income} - \text{Discretionary Expense}}{\text{Income}}$ (where discretionary categories include `Food`, `Shopping`, `Smoking`, `Alcohol`, `Subscription`, and `Others`).
-   * If Savings Rate $\ge 20\%$, $S = 100$.
-   * If $\ge 10\%$ and $< 20\%$, $S = 70 \text{ to } 100$.
-   * If $< 0$, $S = \text{clamped between } 0 \text{ and } 30$.
+   * If Savings Rate $\ge 70\%$, $S = 100$.
+   * If $\ge 50\%$ and $< 70\%$, $S = 70 + \frac{\text{Savings Rate} - 0.50}{0.20} \times 30$ (scales from 70 to 100).
+   * If $\ge 30\%$ and $< 50\%$, $S = 40 + \frac{\text{Savings Rate} - 0.30}{0.20} \times 30$ (scales from 40 to 70).
+   * If $\ge 0\%$ and $< 30\%$, $S = 10 + \frac{\text{Savings Rate}}{0.30} \times 30$ (scales from 10 to 40).
+   * If Savings Rate $< 0$ (overspending), $S = \max(0, 10 + \text{Savings Rate} \times 50)$ (scales down from 10).
 2. **Spending Diversity ($D$) — 20% / 15% Weight**:
    * Measures spending categorization.
    * Less than $2$ categories spent = score $< 55$.
