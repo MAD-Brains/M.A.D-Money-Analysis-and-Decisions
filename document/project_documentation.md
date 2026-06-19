@@ -205,27 +205,44 @@ The transaction parser operates on keyword lookup and regex parsing rules. It is
 * **Split Intent Extraction**: Uses regex pattern `/split with\s+([a-zA-Z0-9_]+)/i` to capture target friend name for automatic split allocation, stripping it from the note before categorization.
 
 ### 2. Money Health Score Calculation
-Computed in [healthScore.js](file:///d:/Project/My-Mini-Projects/M.A.D%28Money%20Analysis%20and%20Decisions%29/backend/services/healthScore.js#L30), the score is a weighted average of four indices ($0 \text{ to } 100$):
+Computed in [healthScore.js](file:///d:/Project/MAD/M.A.D-Money-Analysis-and-Decisions/backend/services/healthScore.js#L37), the score is calculated dynamically based on whether the user has active salary data or high-priority goals:
 
-$$\text{Health Score} = 0.35 \times S + 0.20 \times D + 0.25 \times C + 0.20 \times E$$
+* **Standard (No Salary & No High-Priority Goals):**
+  $$\text{Health Score} = 0.35 \times S + 0.20 \times D + 0.25 \times C + 0.20 \times E$$
+* **Salary-Aware or Goal-Aware:**
+  $$\text{Health Score} = 0.30 \times S + 0.15 \times D + 0.20 \times C + 0.15 \times E + 0.20 \times B$$
+
+#### Special Conditions:
+* **Starter 100 Score:** If the user has logged/configured income ($\text{Income} > 0$) but has no expenses logged yet ($\text{Expense} = 0$), the score is automatically set to `100`.
+* **Random Income Support:** Additional logged incomes (freelance, bonuses, cashback) are added to the baseline profile Monthly Salary:
+  $$\text{Total Income} = \max(\text{Logged Salary}, \text{Monthly Salary}) + \text{Additional Income}$$
 
 #### Breakdown of Indices:
-1. **Savings Rate ($S$) — 35% Weight**:
-   * Calculated as: $\frac{\text{Income} - \text{Expense}}{\text{Income}}$
-   * If $\ge 20\%$, $S = 100$.
+1. **Savings Rate ($S$) — 35% / 30% Weight**:
+   * Designed to protect necessary expenses: Basic necessary expenses (rent, groceries, utilities, travel, EMIs) do not decrease the score.
+   * Calculated as: $\frac{\text{Income} - \text{Discretionary Expense}}{\text{Income}}$ (where discretionary categories include `Food`, `Shopping`, `Smoking`, `Alcohol`, `Subscription`, and `Others`).
+   * If Savings Rate $\ge 20\%$, $S = 100$.
    * If $\ge 10\%$ and $< 20\%$, $S = 70 \text{ to } 100$.
-   * If $< 0$ (debt spending), $S = \text{clamped between } 0 \text{ and } 30$.
-2. **Spending Diversity ($D$) — 20% Weight**:
-   * Measures spending awareness.
+   * If $< 0$, $S = \text{clamped between } 0 \text{ and } 30$.
+2. **Spending Diversity ($D$) — 20% / 15% Weight**:
+   * Measures spending categorization.
    * Less than $2$ categories spent = score $< 55$.
    * $4$ or more categories spent = score $80 \text{ to } 100$.
-3. **Consistency ($C$) — 25% Weight**:
+3. **Consistency ($C$) — 25% / 20% Weight**:
    * Measures tracking frequency in current month: $\frac{\text{Active Days}}{\text{Days Elapsed in Month}}$.
    * Active logging on $\ge 80\%$ of days = $C = 100$.
    * Active logging on $< 20\%$ of days = $C \le 35$.
-4. **Expense Control ($E$) — 20% Weight**:
-   * Ratios of Essential spending (e.g., `Housing`, `Health`, `Travel`) versus Discretionary spending (e.g., `Food`, `Shopping`, `Subscription`, `Others`).
-   * Essential ratio $\ge 60\%$ yields $E \ge 90$ (indicating controlled lifestyle spending).
+4. **Expense Control ($E$) — 20% / 15% Weight**:
+   * Ratios of Essential spending (e.g., `Housing`, `Grocery`, `Health`, `Travel`, EMIs/Loans/Insurance) versus Discretionary spending (e.g., `Food`, `Shopping`, `Smoking`, `Alcohol`, `Subscription`, `Others`).
+   * Essential ratio $\ge 60\%$ yields $E \ge 90$.
+5. **Budget/Goal Discipline ($B$) — 0% / 20% Weight**:
+   * Active when the user has a profile salary configured or at least one active high-priority goal (Priority 3).
+   * **If High-Priority Goal is active:** Penalizes excessive discretionary spending:
+     * If discretionary spending $\le 15\%$ of income, $B = 100$.
+     * If discretionary spending is between $15\%$ and $30\%$, $B$ scales down linearly from $100$ to $40$.
+     * If discretionary spending $> 30\%$, $B$ drops from $40$ to $0$.
+     * (If no income is logged, evaluated against absolute discretionary spending thresholds: $\le 2000 \to 100$, $>5000 \to \le 40$).
+   * **If no High-Priority Goal is active (Salary-aware only):** Evaluated against standard budget ratio: $\frac{\text{Discretionary Expense}}{\text{Monthly Salary}}$ (spending $\le 20\% \to 100$, $>80\% \to \le 35$).
 
 ---
 

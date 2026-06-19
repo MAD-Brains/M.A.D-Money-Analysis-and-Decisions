@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { calculateHealthScore } = require('../services/healthScore');
-const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, getActiveRecurringBills, getFrequentTransactions, getUserById } = require('../db');
+const { getDailySpending, getMonthSummary, getAllCategoryBreakdown, getActiveRecurringBills, getFrequentTransactions, getUserById, getAllTransactions, getActiveGoals } = require('../db');
 
 /**
  * GET /api/insights/health-score
@@ -29,51 +29,125 @@ router.get('/overview', async (req, res) => {
     const dailyTrend = await getDailySpending({ userId });
     const healthScore = await calculateHealthScore(userId);
 
+    // Retrieve active savings goals
+    const goals = await getActiveGoals({ userId });
+    const activeHighPriorityGoals = goals.filter(g => g.priority === 3 && g.isCompleted === 0);
+    const hasHighPriorityGoal = activeHighPriorityGoals.length > 0;
+
     // Monthly Salary set in profile auto-populates as baseline income when
     // no (or less) income has been logged for the month yet
     const user = await getUserById({ id: userId });
     const monthlyIncome = parseFloat(user && user.monthlyIncome) || 0;
-    const totalIncome = Math.max(parseFloat(summary.totalIncome) || 0, monthlyIncome);
+
+    // Scan all transactions for the current month to calculate exact totals
+    const allTxns = await getAllTransactions({ userId });
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const currentMonthTxns = allTxns.filter(t => {
+      const d = new Date(t.createdAt);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+
+    const DISCRETIONARY_CATEGORIES = ['Food', 'Shopping', 'Smoking', 'Alcohol', 'Subscription', 'Others'];
+
+    let necessaryExpense = 0;
+    let discretionaryExpense = 0;
+    let investments = 0;
+    let loggedSalary = 0;
+    let additionalIncome = 0;
+
+    for (const tx of currentMonthTxns) {
+      const amount = parseFloat(tx.amount) || 0;
+      if (tx.type === 'income') {
+        const note = tx.note ? tx.note.toLowerCase() : '';
+        const isSalaryNote = note.includes('salary');
+        const isSalaryAmount = Math.abs(amount - monthlyIncome) < 0.01;
+        if ((isSalaryNote || isSalaryAmount) && loggedSalary === 0 && monthlyIncome > 0) {
+          loggedSalary = amount;
+        } else {
+          additionalIncome += amount;
+        }
+      } else {
+        const category = tx.category;
+        const note = tx.note ? tx.note.toLowerCase() : '';
+
+        if (category === 'Finance') {
+          const isInvestment = note.includes('sip') || 
+                               note.includes('mutual') || 
+                               note.includes('stock') || 
+                               note.includes('share') || 
+                               note.includes('gold') || 
+                               note.includes('investment');
+          if (isInvestment) {
+            investments += amount;
+          } else {
+            necessaryExpense += amount;
+          }
+        } else if (DISCRETIONARY_CATEGORIES.includes(category)) {
+          discretionaryExpense += amount;
+        } else {
+          necessaryExpense += amount;
+        }
+      }
+    }
+
+    const totalIncome = Math.max(loggedSalary, monthlyIncome) + additionalIncome;
+    const totalExpense = necessaryExpense + discretionaryExpense;
+
     summary.totalIncome = totalIncome;
+    summary.totalExpense = totalExpense;
 
-    // Find finance category total to exclude from savings rate calculation
-    const financeTotal = categories
-      .filter(c => c.category === 'Finance')
-      .reduce((sum, c) => sum + c.total, 0);
-
-    // Calculate savings
-    const savings = totalIncome - (summary.totalExpense - financeTotal);
+    // Calculate actual savings (excluding investments which are savings)
+    const savings = totalIncome - totalExpense;
     const savingsRate = totalIncome > 0
       ? Math.round((savings / totalIncome) * 100)
       : 0;
 
     // Category percentages (expense only)
-    const expenseCategories = categories.filter(c => c.type === 'expense');
-    const totalExpense = expenseCategories.reduce((sum, c) => sum + c.total, 0);
-    const categoryData = expenseCategories.map(c => ({
-      category: c.category,
-      total: c.total,
-      count: c.count,
-      percentage: totalExpense > 0 ? Math.round((c.total / totalExpense) * 100) : 0,
-    }));
+    const categoryData = [];
+    let totalExpenseForBreakdown = 0;
+
+    for (const c of categories) {
+      if (c.type === 'expense') {
+        if (c.category === 'Finance') {
+          const financeExpense = Math.max(0, c.total - investments);
+          if (financeExpense > 0) {
+            categoryData.push({
+              category: c.category,
+              total: financeExpense,
+              count: c.count,
+            });
+            totalExpenseForBreakdown += financeExpense;
+          }
+        } else {
+          categoryData.push({
+            category: c.category,
+            total: c.total,
+            count: c.count,
+          });
+          totalExpenseForBreakdown += c.total;
+        }
+      }
+    }
+
+    categoryData.forEach(c => {
+      c.percentage = totalExpenseForBreakdown > 0 ? Math.round((c.total / totalExpenseForBreakdown) * 100) : 0;
+    });
 
     // Compile Jarvis Advice Checklist
     const jarvisAdvice = [];
-    const wantsCategories = ['Food', 'Shopping', 'Smoking', 'Alcohol'];
-    const wantsTotal = categories
-      .filter(c => c.type === 'expense' && wantsCategories.includes(c.category))
-      .reduce((sum, c) => sum + c.total, 0);
+    const wantsTotal = discretionaryExpense; // Use the parsed discretionary total
 
-    const incomeLimit = summary.totalIncome > 0 ? summary.totalIncome : 1;
-    const wantsPercentageOfIncome = (wantsTotal / incomeLimit) * 100;
+    const wantsPercentageOfIncome = totalIncome > 0 ? (wantsTotal / totalIncome) * 100 : 0;
 
-    if (summary.totalIncome > 0 && wantsPercentageOfIncome > 30) {
+    if (totalIncome > 0 && wantsPercentageOfIncome > 30) {
       jarvisAdvice.push({
         type: 'warning',
         category: 'Wants',
         text: `Bhai, discretionary kharche (Swiggy, shopping, sutta/daaru) income ke ${Math.round(wantsPercentageOfIncome)}% ho chuke hain! Lagaan lagao 🚨`
       });
-    } else if (summary.totalIncome === 0 && wantsTotal > 0.4 * summary.totalExpense) {
+    } else if (totalIncome === 0 && wantsTotal > 0.4 * totalExpense) {
       jarvisAdvice.push({
         type: 'warning',
         category: 'Wants',
@@ -81,7 +155,7 @@ router.get('/overview', async (req, res) => {
       });
     }
 
-    if (summary.totalIncome > 0 && savingsRate < 10) {
+    if (totalIncome > 0 && savingsRate < 10) {
       jarvisAdvice.push({
         type: 'warning',
         category: 'Savings',
@@ -89,12 +163,19 @@ router.get('/overview', async (req, res) => {
       });
     }
 
-    
-    if (summary.totalIncome > 0 && financeTotal === 0) {
+    if (totalIncome > 0 && investments === 0) {
       jarvisAdvice.push({
         type: 'tip',
         category: 'Investment',
         text: 'Surplus bacha hai toh mutual fund ya gold SIP shuru kar ke paisa compound kar! 💡'
+      });
+    }
+
+    if (hasHighPriorityGoal && discretionaryExpense > 0.20 * totalIncome && totalIncome > 0) {
+      jarvisAdvice.push({
+        type: 'warning',
+        category: 'Goals',
+        text: `Bhai, high priority goal active hai par Swiggy, shopping aur daaru/sutta pe kharcha control se bahar hai (${Math.round((discretionaryExpense / totalIncome) * 100)}% of income). Thoda cut-down kar! 🎯`
       });
     }
 

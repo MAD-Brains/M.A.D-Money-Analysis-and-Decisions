@@ -9,7 +9,7 @@ process.env.MAD_DB_PATH = testDbFile;
 process.env.PORT = '3005';
 process.env.SESSION_SECRET = 'test-secret';
 
-test('API End-to-End Integration Tests', async (t) => {
+test('API End-to-End Integration Tests', { skip: !process.env.DATABASE_URL }, async (t) => {
   const walFile = testDbFile + '-wal';
   const shmFile = testDbFile + '-shm';
 
@@ -143,7 +143,8 @@ test('API End-to-End Integration Tests', async (t) => {
 
   } finally {
     // Safely close connection
-    testDb.db.close();
+    if (testDb && testDb.db && typeof testDb.db.close === 'function') testDb.db.close();
+    if (testDb && testDb.pool && typeof testDb.pool.end === 'function') await testDb.pool.end();
     
     // Cleanup files
     if (fs.existsSync(testDbFile)) fs.unlinkSync(testDbFile);
@@ -151,6 +152,8 @@ test('API End-to-End Integration Tests', async (t) => {
     if (fs.existsSync(shmFile)) fs.unlinkSync(shmFile);
     
     // Terminate process safely to release port 3005
-    process.exit(0);
+    if (process.env.DATABASE_URL) {
+      process.exit(0);
+    }
   }
 });
