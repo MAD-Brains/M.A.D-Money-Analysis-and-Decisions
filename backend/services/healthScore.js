@@ -144,17 +144,20 @@ async function calculateHealthScore(userId) {
   let savingsScore = 50; // default if no income
   if (totalIncome > 0) {
     // Basic necessary expenses do not reduce the savings rate score.
+    // SavingsRate is discretionary surplus: (totalIncome - discretionaryExpense) / totalIncome.
+    // Discretionary spend should be <= 30% of income (meaning savingsRate >= 70% is 100).
     const savingsRate = (totalIncome - discretionaryExpense) / totalIncome;
-    // 20% savings = 100 score, 0% = 40, negative = 0-30
-    if (savingsRate >= 0.20) {
+    if (savingsRate >= 0.70) {
       savingsScore = 100;
-    } else if (savingsRate >= 0.10) {
-      savingsScore = 70 + (savingsRate - 0.10) / 0.10 * 30;
+    } else if (savingsRate >= 0.50) {
+      savingsScore = 70 + (savingsRate - 0.50) / 0.20 * 30;
+    } else if (savingsRate >= 0.30) {
+      savingsScore = 40 + (savingsRate - 0.30) / 0.20 * 30;
     } else if (savingsRate >= 0) {
-      savingsScore = 40 + (savingsRate / 0.10) * 30;
+      savingsScore = 10 + (savingsRate / 0.30) * 30;
     } else {
-      // Negative savings (overspending on discretionary)
-      savingsScore = Math.max(0, 30 + savingsRate * 100);
+      // Overspending on discretionary
+      savingsScore = Math.max(0, 10 + savingsRate * 50);
     }
   } else if (discretionaryExpense > 0) {
     // Only discretionary expenses, no income logged
