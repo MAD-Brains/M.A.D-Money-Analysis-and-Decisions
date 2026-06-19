@@ -180,10 +180,26 @@ async function calculateHealthScore(userId) {
     diversityScore = Math.min(100, 80 + (numCategories - 4) * 5);
   }
 
+  // If total expense is very small, boost diversity score towards 100
+  const bufferThreshold = totalIncome > 0 ? 0.05 * totalIncome : 1000;
+  if (totalExpense < bufferThreshold && totalExpense > 0) {
+    const ratio = totalExpense / bufferThreshold;
+    diversityScore = diversityScore + (1 - ratio) * (100 - diversityScore);
+  }
+
   // ═══════════════════════════════════════
   // 3. CONSISTENCY (25% or 20% with salary/goals)
   // ═══════════════════════════════════════
-  const trackingRate = dayOfMonth > 0 ? activeDays / dayOfMonth : 0;
+  // Calculate maximum trackable days for the current month based on registration date
+  const regDate = new Date((user && user.createdAt) || today);
+  let maxTrackableDays = dayOfMonth;
+  if (regDate.getFullYear() === today.getFullYear() && regDate.getMonth() === today.getMonth()) {
+    // Registered this month: trackable days is days since registration
+    const msDiff = today - regDate;
+    const daysDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+    maxTrackableDays = Math.max(1, Math.min(dayOfMonth, daysDiff));
+  }
+  const trackingRate = maxTrackableDays > 0 ? activeDays / maxTrackableDays : 0;
   let consistencyScore;
   if (trackingRate >= 0.8) {
     consistencyScore = 100;
@@ -211,6 +227,14 @@ async function calculateHealthScore(userId) {
       controlScore = 60 + (essentialRatio - 0.4) / 0.2 * 30;
     } else {
       controlScore = 30 + essentialRatio / 0.4 * 30;
+    }
+
+    // If discretionary spending is very small, we should not drop the controlScore.
+    if (discretionaryExpense < bufferThreshold) {
+      // Smoothly interpolate: if discretionaryExpense = 0, boost to 100.
+      // If discretionaryExpense = bufferThreshold, keep the original controlScore.
+      const ratio = discretionaryExpense / bufferThreshold; // 0 to 1
+      controlScore = controlScore + (1 - ratio) * (100 - controlScore);
     }
   }
 
